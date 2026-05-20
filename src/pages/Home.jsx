@@ -14,6 +14,7 @@ const Home = () => {
   const { getAdminNameAcc, 
           getUserName, 
           getClubData, 
+          getClubById,
           addPlayer, 
           getPlayers, 
           updatedPlayers, 
@@ -234,6 +235,18 @@ const Home = () => {
     setCheckIns(checkInData);
   };
 
+  const handleOpenUploadSlipModal = async (clubData) => {
+    const latestClubs = await getClubData();
+    const latestClub =
+      (await getClubById(clubData.id)) ||
+      latestClubs.find((currentClub) => currentClub.id === clubData.id) ||
+      clubData;
+
+    setClub(latestClubs);
+    setUploadingSlipClub(latestClub);
+    setShowUploadSlipModal(true);
+  };
+
 
   const IOSToggle = ({ isOn, onToggle, clubColor }) => (
     <div 
@@ -341,7 +354,6 @@ const Home = () => {
             <h2 className='text-[12px] text-gray-500'>
               {t('manage your badminton clubs and players')}
             </h2>
-
             {/* Clubs List */}
             <div className="gap-2 md:gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mx-2 md:mx-5 mt-5">
               {club.map((club, index) => {
@@ -383,10 +395,19 @@ const Home = () => {
                       </div>
                       <div>{club.startTime}-{club.endTime}</div>
                     </div>
-                    {/* Bottom Row: Member count */}
-                    <div className="flex items-center mt-auto pt-1 md:pt-3">
-                      <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
-                      <span className="text-md">{getClubMemberCount(club.id)}</span>
+                    {/* Bottom: Member count + Live Scores */}
+                    <div className="flex flex-col gap-2 mt-auto pt-1 md:pt-3">
+                      <div className="flex items-center">
+                        <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
+                        <span className="text-md">{getClubMemberCount(club.id)}</span>
+                      </div>
+                      <Link
+                        to={`/dashboard/${club.id}`}
+                        className="flex items-center justify-center gap-1.5 w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white rounded-lg py-2 text-xs sm:text-sm font-semibold transition-colors"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                        {t('Live Scores')}
+                      </Link>
                     </div>
                   </div>
                 );
@@ -722,6 +743,7 @@ const Home = () => {
           <div className='mx-5 sm:mx-20 mt-5 sm:mt-10'>
             <h1 className='head-text'>{t('welcome')}, {name}</h1>
             <h2 className='text-[11px] text-gray-500'>{t('Check in the game — your club is waiting.')}</h2>
+
             {/* Clubs List */}
             <div className="gap-4 md:gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mx-2 md:mx-5 mt-5">
               {club.map((club, index) => {
@@ -752,10 +774,7 @@ const Home = () => {
                           </button>
                         )}
                         <button
-                          onClick={() => {
-                            setUploadingSlipClub(club);
-                            setShowUploadSlipModal(true);
-                          }} 
+                          onClick={() => handleOpenUploadSlipModal(club)} 
                           className="flex flex-row items-center gap-2 bg-neutral-100 drop-shadow-md px-3 py-2 rounded-xl"
                         >
                           <Clipboard size={12}/>
@@ -773,10 +792,19 @@ const Home = () => {
                       </div>
                       <div>{club.startTime}-{club.endTime}</div>
                     </div>
-                    {/* Bottom Row: Member count */}
-                    <div className="flex items-center mt-auto pt-1 md:pt-3">
-                      <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
-                      <span className="text-md">{getClubMemberCount(club.id)}</span>
+                    {/* Bottom: Member count + Live Scores */}
+                    <div className="flex flex-col gap-2 mt-auto pt-1 md:pt-3">
+                      <div className="flex items-center">
+                        <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
+                        <span className="text-md">{getClubMemberCount(club.id)}</span>
+                      </div>
+                      <Link
+                        to={`/dashboard/${club.id}`}
+                        className="flex items-center justify-center gap-1.5 w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white rounded-lg py-2 text-xs sm:text-sm font-semibold transition-colors"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                        {t('Live Scores')}
+                      </Link>
                     </div>
                   </div>
                 );
@@ -820,11 +848,51 @@ const Home = () => {
 
             {showUploadSlipModal && uploadingSlipClub && (
               <div className="z-50 fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 p-4">
-                <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
                   <h3 className="mb-4 font-semibold text-lg">
                     {t('Upload Slip')} — <span className="text-blue-600">{uploadingSlipClub.clubName}</span>
                   </h3>
-                  {/* ⬇️ NEW: Drag-and-drop file input */}
+                  
+                  {/* Payment Info Section */}
+                  {(uploadingSlipClub.paymentBank || uploadingSlipClub.paymentAccountName || uploadingSlipClub.paymentAccountNumber || uploadingSlipClub.paymentQrDisplayUrl || uploadingSlipClub.paymentQrPreviewUrl || uploadingSlipClub.paymentQrDownloadUrl) ? (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-semibold text-blue-900 mb-3">{t('Payment Details')}</h4>
+                      
+                      {(uploadingSlipClub.paymentQrDisplayUrl || uploadingSlipClub.paymentQrDownloadUrl || uploadingSlipClub.paymentQrPreviewUrl) ? (
+                        <div className="mb-4 flex justify-center">
+                          <img 
+                            src={uploadingSlipClub.paymentQrDisplayUrl || uploadingSlipClub.paymentQrDownloadUrl || uploadingSlipClub.paymentQrPreviewUrl} 
+                            alt="Payment QR Code" 
+                            className="w-40 h-40 border-2 border-blue-300 rounded"
+                          />
+                        </div>
+                      ) : (
+                        <p className="mb-4 text-gray-600 text-sm text-center">
+                          {t("No QR linked to this club yet")}
+                        </p>
+                      )}
+                      
+                      <div className="space-y-2 text-sm">
+                        {uploadingSlipClub.paymentBank && (
+                          <p><span className="font-semibold text-gray-700">{t('Bank')}:</span> <span className="text-gray-900">{uploadingSlipClub.paymentBank}</span></p>
+                        )}
+                        {uploadingSlipClub.paymentAccountName && (
+                          <p><span className="font-semibold text-gray-700">{t('Account Name')}:</span> <span className="text-gray-900">{uploadingSlipClub.paymentAccountName}</span></p>
+                        )}
+                        {uploadingSlipClub.paymentAccountNumber && (
+                          <p><span className="font-semibold text-gray-700">{t('Account Number')}:</span> <span className="text-gray-900">{uploadingSlipClub.paymentAccountNumber}</span></p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-gray-600 text-sm text-center">
+                        {t("No payment details added for this club yet")}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* ⬇️ Drag-and-drop file input */}
                   <DragDropUpload
                     onFileSelected={(file) => setSlipFile(file)}
                   />
@@ -864,6 +932,7 @@ const Home = () => {
                 </div>
               </div>
             )}
+
           </div>
         )}
       </div>

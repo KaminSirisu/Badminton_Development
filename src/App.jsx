@@ -10,6 +10,7 @@ import { Toaster } from 'react-hot-toast';
 import './App.css';
 import CourtPlayer from './pages/CourtPlayer';
 import Summary from './pages/Summary';
+import Dashboard from './pages/Dashboard';
 import { LanguageProvider } from './utils/LanguageProvider';
 
 
@@ -36,6 +37,7 @@ const App = () => {
               <Route path="/setting" element={<Setting />} />
               <Route path="/matchmaking/:id" element={<CourtPlayer checkedPlayers={checkedPlayers}/>} />
               <Route path="/summary/:id" element={<Summary checkedPlayers={checkedPlayers} onCheckboxToggle={handleCheckboxToggle}/>} />
+              <Route path="/dashboard/:id" element={<Dashboard />} />
             </Route>
           
           </Routes>

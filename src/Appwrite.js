@@ -16,6 +16,30 @@ const client = new Client()
   .setEndpoint(ENDPOINT) // replace with your endpoint
   .setProject(PROJECT_ID);
 
+const clearRealtimeHeartbeat = () => {
+  if (client.realtime?.heartbeat) {
+    clearInterval(client.realtime.heartbeat);
+    client.realtime.heartbeat = undefined;
+  }
+};
+
+if (client.realtime) {
+  client.realtime.createHeartbeat = () => {
+    clearRealtimeHeartbeat();
+
+    client.realtime.heartbeat = window?.setInterval(() => {
+      const socket = client.realtime?.socket;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        clearRealtimeHeartbeat();
+        return;
+      }
+
+      socket.send(JSON.stringify({ type: 'ping' }));
+    }, 20000);
+  };
+}
+
 export const databases = new Databases(client);
 export const account = new Account(client);
 export const storage = new Storage(client);

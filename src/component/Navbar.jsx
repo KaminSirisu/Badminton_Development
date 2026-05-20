@@ -5,7 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import PreviewFilesList from './PreviewFilesList.jsx';
 import menu from "../assets/menu.svg"; // your hamburger icon
 import close from "../assets/close.svg"; // your close icon
-import Batminton from "../assets/badminton.png";
+import Badminton from "../assets/badminton.png";
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 
 
@@ -94,9 +94,9 @@ const Navbar = () => {
           }}
         >
           <p className="font-semibold text-[14px] text-black md:text-[22px]">
-            Batminton Club
+            Badminton Club
           </p>
-          <img src={Batminton} alt="Batminton" className="self-center w-6 h-6" />
+          <img src={Badminton} alt="Badminton" className="self-center w-6 h-6" />
         </Link>
 
         {/* Desktop Right */}

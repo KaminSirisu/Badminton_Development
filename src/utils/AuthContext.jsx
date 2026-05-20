@@ -9,6 +9,7 @@ import {
   account,
   databases,
   storage,
+  default as client,
   DATABASE_ID,
   PLAYERS_COLLECTION_ID,
   CLUBS_COLLECTION_ID,
@@ -123,9 +124,96 @@ export const AuthProvider = ({ children }) => {
     return user?.labels || ["No label"];
   };
 
+  const uploadPaymentQRToAppwrite = async (file) => {
+    if (!file) return null;
+    try {
+      const fileUpload = await storage.createFile(
+        SLIP_STORAGE_ID,
+        ID.unique(),
+        file
+      );
+      return fileUpload.$id;
+    } catch (e) {
+      console.error("Error uploading QR file:", e);
+      throw e;
+    }
+  };
+
+  const normalizePaymentAccountNumber = (value) => {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value).trim();
+  };
+
+  const resolveStorageUrl = (value) => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (typeof value.href === "string") return value.href;
+    return String(value);
+  };
+
+  const getPaymentQrUrls = (fileId) => {
+    if (!fileId) {
+      return {
+        paymentQrFileId: null,
+        paymentQrPreviewUrl: null,
+        paymentQrDownloadUrl: null,
+        paymentQrDisplayUrl: null,
+      };
+    }
+
+    const normalizedFileId = String(fileId).trim();
+
+    return {
+      paymentQrFileId: normalizedFileId,
+      paymentQrPreviewUrl: resolveStorageUrl(storage.getFilePreview(SLIP_STORAGE_ID, normalizedFileId)),
+      paymentQrDownloadUrl: resolveStorageUrl(storage.getFileDownload(SLIP_STORAGE_ID, normalizedFileId)),
+      paymentQrDisplayUrl: resolveStorageUrl(storage.getFileView(SLIP_STORAGE_ID, normalizedFileId)),
+    };
+  };
+
+  const mapClubDocument = (doc) => ({
+    ...getPaymentQrUrls(doc.paymentQrFileId),
+    id: doc.$id,
+    clubName: doc.name,
+    startPrice: doc.startPrice,
+    pricePerGame: doc.pricePerGame,
+    playingDay: doc.playingDay,
+    startTime: doc.startTime,
+    endTime: doc.endTime,
+    paymentBank: doc.paymentBank || "",
+    paymentAccountName: doc.paymentAccountName || "",
+    paymentAccountNumber: doc.paymentAccountNumber || "",
+  });
+
+  const getAvailablePaymentQrFiles = async () => {
+    try {
+      const response = await storage.listFiles(SLIP_STORAGE_ID);
+
+      return response.files.map((file) => ({
+        id: file.$id,
+        name: file.name,
+        createdAt: file.$createdAt,
+        ...getPaymentQrUrls(file.$id),
+      }));
+    } catch (e) {
+      console.error("Failed to fetch payment QR files:", e);
+      toast.error("Failed to load payment QR files.");
+      return [];
+    }
+  };
+
   const createClubs = async (userInfo) => {
     setLoading(true);
     try {
+      let paymentQrFileId = userInfo.paymentQrFileId || null;
+      const paymentAccountNumber = normalizePaymentAccountNumber(userInfo.paymentAccountNumber);
+      if (userInfo.paymentQrFile) {
+        paymentQrFileId = await uploadPaymentQRToAppwrite(userInfo.paymentQrFile);
+      }
+
       await databases.createDocument(
         DATABASE_ID,
         CLUBS_COLLECTION_ID,
@@ -137,6 +225,10 @@ export const AuthProvider = ({ children }) => {
           startTime: userInfo.startTime,
           endTime: userInfo.endTime,
           pricePerGame: userInfo.pricePerGame,
+          paymentBank: userInfo.paymentBank || "",
+          paymentAccountName: userInfo.paymentAccountName || "",
+          paymentAccountNumber,
+          paymentQrFileId: paymentQrFileId || null,
         }
       );
       toast.success("Create Club Successfully!");
@@ -152,15 +244,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await databases.listDocuments(DATABASE_ID, CLUBS_COLLECTION_ID);
-      const clubs = response.documents.map(doc => ({
-        id: doc.$id,
-        clubName: doc.name,
-        startPrice: doc.startPrice,
-        pricePerGame: doc.pricePerGame,
-        playingDay: doc.playingDay,
-        startTime: doc.startTime,
-        endTime: doc.endTime,
-      }));
+      const clubs = response.documents.map(mapClubDocument);
       return clubs;
     } catch (e) {
       console.error("Failed to fetch clubs:", e);
@@ -170,26 +254,55 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const getClubById = async (clubId) => {
+    try {
+      const doc = await databases.getDocument(
+        DATABASE_ID,
+        CLUBS_COLLECTION_ID,
+        clubId
+      );
+
+      return mapClubDocument(doc);
+    } catch (e) {
+      console.error("Failed to fetch club by id:", e);
+      return null;
+    }
+  };
+
   const updateClub = async (clubId, updatedData) => {
     setLoading(true);
     try {
+      const paymentAccountNumber = normalizePaymentAccountNumber(updatedData.paymentAccountNumber);
+      const payload = {
+        name: updatedData.clubName,
+        startPrice: updatedData.startPrice,
+        playingDay: updatedData.daysPlaying,
+        startTime: updatedData.startTime,
+        endTime: updatedData.endTime,
+        pricePerGame: updatedData.pricePerGame,
+        paymentBank: updatedData.paymentBank || "",
+        paymentAccountName: updatedData.paymentAccountName || "",
+        paymentAccountNumber,
+      };
+
+      if (updatedData.paymentQrFile) {
+        payload.paymentQrFileId = await uploadPaymentQRToAppwrite(updatedData.paymentQrFile);
+      } else if (updatedData.paymentQrFileId !== undefined) {
+        payload.paymentQrFileId = updatedData.paymentQrFileId || null;
+      }
+
       await databases.updateDocument(
         DATABASE_ID,
         CLUBS_COLLECTION_ID,
         clubId, // using Appwrite's document ID
-        {
-          name: updatedData.clubName,
-          startPrice: updatedData.startPrice,
-          playingDay: updatedData.daysPlaying,
-          startTime: updatedData.startTime,
-          endTime: updatedData.endTime,
-          pricePerGame: updatedData.pricePerGame,
-        }
+        payload
       );
       toast.success("Club updated successfully!");
+      return await getClubById(clubId);
     } catch (e) {
       console.error("Error updating club:", e);
-      toast.error("Failed to update club. Please try again.");
+      toast.error(e?.message || "Failed to update club. Please try again.");
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -417,6 +530,128 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const getDashboardMatchesByClubId = async (clubId) => {
+    try {
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        MATCHES_COLLECTION_ID,
+        [
+          Query.equal('clubId', clubId),
+          Query.orderAsc('$createdAt'),
+        ]
+      );
+
+      return response.documents.map((doc) => ({
+        id: doc.$id,
+        players: doc.players || [],
+        court: doc.court,
+        startTime: doc.startTime,
+        clubId: doc.clubId,
+        status: doc.status || 'WAITING',
+        totalTime: doc.totalTime,
+        matchScore: doc.matchScore || '',
+        winningTeam: doc.winningTeam || '',
+      }));
+    } catch (e) {
+      console.error('Failed to fetch dashboard matches:', e);
+      return [];
+    }
+  };
+
+  const subscribeToDashboardMatches = (clubId, onEvent) => {
+    if (!clubId || typeof onEvent !== 'function') {
+      return () => {};
+    }
+
+    const unsubscribe = client.subscribe(
+      `databases.${DATABASE_ID}.collections.${MATCHES_COLLECTION_ID}.documents`,
+      ({ events, payload }) => {
+        if (payload.clubId !== clubId) return;
+
+        const match = {
+          id: payload.$id,
+          players: payload.players || [],
+          court: payload.court,
+          startTime: payload.startTime,
+          clubId: payload.clubId,
+          status: payload.status || 'WAITING',
+          totalTime: payload.totalTime,
+          matchScore: payload.matchScore || '',
+          winningTeam: payload.winningTeam || '',
+        };
+
+        onEvent({ events, match, payload });
+      }
+    );
+
+    let isUnsubscribed = false;
+
+    return () => {
+      if (isUnsubscribed) return;
+      isUnsubscribed = true;
+
+      try {
+        unsubscribe();
+      } catch (e) {
+        if (!String(e?.message || '').includes('CLOSING or CLOSED')) {
+          console.error('Failed to unsubscribe from dashboard matches:', e);
+        }
+      }
+    };
+  };
+
+  const queueDashboardMatch = async ({ players, court, clubId }) => {
+    try {
+      const doc = await databases.createDocument(
+        DATABASE_ID,
+        MATCHES_COLLECTION_ID,
+        ID.unique(),
+        {
+          players,
+          court,
+          clubId,
+          startTime: new Date().toISOString(),
+          status: 'WAITING',
+        }
+      );
+      return doc;
+    } catch (e) {
+      console.error('Failed to queue match:', e);
+      throw e;
+    }
+  };
+
+  const startDashboardMatch = async (dashboardMatchId) => {
+    try {
+      await databases.updateDocument(DATABASE_ID, MATCHES_COLLECTION_ID, dashboardMatchId, {
+        status: 'PLAYING',
+      });
+    } catch (e) {
+      console.error('Failed to start match:', e);
+      throw e;
+    }
+  };
+
+  const endDashboardMatch = async (dashboardMatchId, { totalTime, fallbackData }) => {
+    try {
+      if (dashboardMatchId) {
+        await databases.updateDocument(DATABASE_ID, MATCHES_COLLECTION_ID, dashboardMatchId, {
+          status: 'FINISHED',
+          ...(totalTime !== null && totalTime !== undefined && { totalTime }),
+        });
+      } else {
+        await databases.createDocument(DATABASE_ID, MATCHES_COLLECTION_ID, ID.unique(), {
+          ...fallbackData,
+          status: 'FINISHED',
+          ...(totalTime !== null && totalTime !== undefined && { totalTime }),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to end match:', e);
+      throw e;
+    }
+  };
+
   const clearMatchesAndResetPlayers = async () => {
     try {
       // 1. Fetch all match documents
@@ -604,6 +839,7 @@ export const AuthProvider = ({ children }) => {
     getAdminNameAcc,
     createClubs,
     getClubData,
+    getClubById,
     updateClub,
     deleteClub,
     addPlayer,
@@ -614,6 +850,11 @@ export const AuthProvider = ({ children }) => {
     clearCheckIns,
     createMatch,
     getMatches,
+    getDashboardMatchesByClubId,
+    subscribeToDashboardMatches,
+    queueDashboardMatch,
+    startDashboardMatch,
+    endDashboardMatch,
     incrementGamePlayed,
     getCheckIn,
     clearMatchesAndResetPlayers,
@@ -623,7 +864,9 @@ export const AuthProvider = ({ children }) => {
     getPreviewUrlsFromFileIds,
     getPreviewUrlsFromDocs,
     updateUserName,
-    fetchUser
+    fetchUser,
+    uploadPaymentQRToAppwrite,
+    getAvailablePaymentQrFiles
   };
 
   return (

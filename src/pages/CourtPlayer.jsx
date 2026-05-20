@@ -2,7 +2,7 @@ import { Link, useParams } from "react-router-dom"
 import Navbar from "../component/Navbar";
 import Footer from "../component/Footer.jsx";
 import { useAuth } from '../utils/AuthContext';
-import { ArrowLeft, History, Plus, Users, X, Filter } from "lucide-react";
+import { ArrowLeft, History, Plus, Users, X, Filter, Clock, Radio } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from 'react-hot-toast';
 import tennisCourt from '../assets/tennis-court.png';
@@ -12,11 +12,10 @@ import { useLanguage } from '../utils/LanguageProvider.jsx';
 
 
 const CourtPlayer = ({ checkedPlayers }) => {
-  const { getPlayers, createMatch, getMatches, incrementGamePlayed } = useAuth();
+  const { getPlayers, getMatches, incrementGamePlayed, queueDashboardMatch, startDashboardMatch, endDashboardMatch } = useAuth();
   const { id } = useParams();
   const { t } = useLanguage();
 
-  const [activeMatchId, setActiveMatchId] = useState({});
   const [suggestedMatch, setSuggestedMatch] = useState(null);
   const [matches, setMatches] = useState([]);
   const [completedMatches, setCompletedMatches] = useState([]);
@@ -123,7 +122,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
     // Add to main matches
     setMatches(prev => [
       ...prev,
-      { ...matchToUse, id: Date.now() }
+      { ...matchToUse, id: Date.now(), matchStatus: 'draft', dashboardMatchId: null, startTimestamp: null }
     ]);
 
     // Remove the used match from suggestions
@@ -174,12 +173,8 @@ const CourtPlayer = ({ checkedPlayers }) => {
   // Load matches from localStorage on mount
   useEffect(() => {
     const savedMatches = localStorage.getItem("matches");
-    const savedActive = localStorage.getItem("activeMatchId");
     if (savedMatches) {
       setMatches(JSON.parse(savedMatches));
-    }
-    if (savedActive) {
-      setActiveMatchId(JSON.parse(savedActive));
     }
   }, []);
 
@@ -202,50 +197,95 @@ const CourtPlayer = ({ checkedPlayers }) => {
     fetchMatches();
   }, []);
 
-  // Save whenever activeMatchId changes
-  useEffect(() => {
-    localStorage.setItem("activeMatchId", JSON.stringify(activeMatchId));
-  }, [activeMatchId]);
-
   const handleSubmit = () => {
     const newMatch = {
       id: Date.now(),
       courtNumber: null,
       team1: { player1: null, player2: null },
       team2: { player1: null, player2: null },
-      isCompleted: false
+      isCompleted: false,
+      // dashboard lifecycle fields
+      matchStatus: 'draft',   // 'draft' | 'waiting' | 'playing'
+      dashboardMatchId: null, // Appwrite document $id once queued
+      startTimestamp: null,   // ms timestamp when match started
     };
     const updatedMatches = [...matches, newMatch];
     setMatches(updatedMatches);
-    localStorage.setItem("matches", JSON.stringify(updatedMatches)); // immediate save
+    localStorage.setItem("matches", JSON.stringify(updatedMatches));
   };
 
-  const toggleMatch = async (matchId) => {
-    const isCurrentlyActive = !!activeMatchId[matchId]; // get current state synchronously
+  const handleQueueMatch = async (matchId) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
 
-    if (isCurrentlyActive) {
-      await endMatch(matchId);
-      setActiveMatchId(prev => ({
-        ...prev,
-        [matchId]: false
-      }));
-    } else {
-      const match = matches.find(m => m.id === matchId);
-      if (!match) return;
+    const { team1, team2, courtNumber } = match;
+    if (!courtNumber || !team1?.player1 || !team1?.player2 || !team2?.player1 || !team2?.player2) {
+      toast.error(t("Please complete the court and player selection"));
+      return;
+    }
 
-      const { team1, team2, courtNumber } = match;
+    try {
+      const doc = await queueDashboardMatch({
+        players: [team1.player1.name, team1.player2.name, team2.player1.name, team2.player2.name],
+        court: courtNumber,
+        clubId: id,
+      });
+      setMatches(prev => prev.map(m =>
+        m.id === matchId ? { ...m, matchStatus: 'waiting', dashboardMatchId: doc.$id } : m
+      ));
+      toast.success("Match is now WAITING — visible in Live Scores!");
+    } catch (e) {
+      toast.error("Failed to queue match");
+    }
+  };
 
-      if (!courtNumber || !team1?.player1 || !team1?.player2 || !team2?.player1 || !team2?.player2) {
-        toast.error(t("Please complete the court and player selection"));
-        return;
-      }
+  const handleStartMatch = async (matchId) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match?.dashboardMatchId) return;
 
-      // Optionally await startMatch(matchId);
+    try {
+      await startDashboardMatch(match.dashboardMatchId);
+      setMatches(prev => prev.map(m =>
+        m.id === matchId ? { ...m, matchStatus: 'playing', startTimestamp: Date.now() } : m
+      ));
+    } catch (e) {
+      toast.error("Failed to start match");
+    }
+  };
 
-      setActiveMatchId(prev => ({
-        ...prev,
-        [matchId]: true
-      }));
+  const handleEndMatch = async (matchId) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const { team1, team2, courtNumber, dashboardMatchId, startTimestamp } = match;
+
+    if (!courtNumber || !team1.player1 || !team1.player2 || !team2.player1 || !team2.player2) {
+      toast.error(t("Please complete the court and player selection"));
+      return;
+    }
+
+    try {
+      const totalTime = startTimestamp ? Math.round((Date.now() - startTimestamp) / 60000) : null;
+
+      await endDashboardMatch(dashboardMatchId, {
+        totalTime,
+        fallbackData: {
+          players: [team1.player1.name, team1.player2.name, team2.player1.name, team2.player2.name],
+          court: courtNumber,
+          clubId: id,
+          startTime: new Date().toISOString(),
+        },
+      });
+
+      setMatches(prev => prev.filter(m => m.id !== matchId));
+      await fetchMatches();
+
+      const playerIds = [team1.player1.id, team1.player2.id, team2.player1.id, team2.player2.id];
+      Promise.all(playerIds.map(pid => incrementGamePlayed(pid)))
+        .catch(e => console.error("Error incrementing gamesPlayed:", e));
+
+    } catch (e) {
+      toast.error("Failed to end match");
     }
   };
 
@@ -301,66 +341,6 @@ const CourtPlayer = ({ checkedPlayers }) => {
 
   };
 
-  const endMatch = async (matchId) => {
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-
-    const { team1, team2, courtNumber } = match;
-
-    if (!courtNumber || !team1.player1 || !team1.player2 || !team2.player1 || !team2.player2) {
-      // setAlertMessage('Please complete court and player selection.');
-      // setShowAlert(true);
-      toast.error("Please complete the court and player selection")
-      return;
-    } else {
-      try {
-        
-        setMatches(matches.filter(m => m.id !== matchId));
-        
-        await createMatch({ 
-          players: [
-            team1.player1.name, 
-            team1.player2.name, 
-            team2.player1.name,
-            team2.player2.name
-          ], 
-          court: courtNumber
-        });
-
-        // ✅ Immediately re-fetch matches after creating
-        await fetchMatches();
-
-         // ✅ Increment gamesPlayed for all players
-        const playerIds = [
-          team1.player1.id,
-          team1.player2.id,
-          team2.player1.id,
-          team2.player2.id,
-        ];
-
-         // ✅ Immediately update UI
-        const completedMatch = {
-          ...match,
-          isCompleted: true,
-          completedAt: new Date().toLocaleString(),
-        };
-
-        setCompletedMatches([...completedMatches, completedMatch]);
-
-        // ✅ Run increments in the background, This will run all 4 incrementGamePlayed calls in parallel
-        Promise.all(playerIds.map(playerId => incrementGamePlayed(playerId)))
-          .then(() => console.log("All player gamesPlayed incremented"))
-          .catch(e => console.error("Error incrementing gamesPlayed:", e));
-      
-      } catch (e) {
-        console.error(e);
-        setAlertMessage('Failed to save match to database.');
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 3000);
-      }
-    }
-    
-  };
 
   const getSkillColor = (skill) => {
     switch(skill) {
@@ -396,7 +376,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
           <div className="flex flex-row items-center gap-1 md:gap-2">
             {/* Suggest */}
             <button 
-              className="flex items-center shadow-md px-1 py-0.5 border rounded-3xl"
+              className="flex items-center shadow-md px-2 sm:px-1.5 py-1 sm:py-1.5 border rounded-3xl gap-1 bg-white hover:bg-gray-500 text-black hover:text-white transition-colors"
               onClick={() => {
                 // Filter out checked players before generating matches
                 const uncheckedPlayers = players.filter(player => !checkedPlayers[player.id]);
@@ -459,21 +439,43 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   </button>
                 </div> */}
                 <div className="p-3">
+                  {/* Card header: status badge + delete */}
+                  <div className="flex justify-between items-center mb-2">
+                    {match.matchStatus === 'waiting' && (
+                      <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        <Clock size={10} /> Waiting
+                      </span>
+                    )}
+                    {match.matchStatus === 'playing' && (
+                      <span className="flex items-center gap-1 bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">
+                        <Radio size={10} /> Live
+                      </span>
+                    )}
+                    {(!match.matchStatus || match.matchStatus === 'draft') && (
+                      <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        Draft
+                      </span>
+                    )}
+                    {match.matchStatus === 'draft' || !match.matchStatus ? (
+                      <button
+                        onClick={() => setMatches(matches.filter(m => m.id !== match.id))}
+                      >
+                        <X size={16} className="text-black hover:text-red-500" />
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+                  </div>
+
                   {/* Skill Filter for this match */}
                   <div className="mb-3">
-                  <button 
-                    onClick={() => setMatches(matches.filter(m => m.id !== match.id))} 
-                    className="flex justify-self-end"
-                  >
-                    <X size={16} className="text-black hover:text-red-500" />
-                  </button>
                     <div className="flex justify-center items-center gap-2">
                       {/* Court Number */}
                       <div className="flex flex-row gap-2 md:gap-4">
-                        {/* <label className="block font-medium text-sm">Court Number</label> */}
                         <img src={tennisCourt} alt="Tennis Court" className="self-center w-7 h-7"/>
                         <select
-                          className="mt-1 px-1 py-2 border border-gray-300 rounded-lg text-xs"
+                          className="mt-1 px-1 py-2 border border-gray-300 rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
                           onChange={e => {
                             const courtNum = parseInt(e.target.value);
                             setMatches(matches.map(m => m.id === match.id ? { ...m, courtNumber: courtNum } : m));
@@ -489,18 +491,17 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </select>
 
                         <Filter size={14} className="self-center text-gray-500" />
-                        <select 
-                          value={skillFilters[match.id] || 'All'} 
+                        <select
+                          value={skillFilters[match.id] || 'All'}
                           onChange={(e) => updateSkillFilter(match.id, e.target.value)}
-                          className="px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
+                          className="px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {skillLevels.map(level => (
                             <option key={level} value={level}>{t(`${level}`)}</option>
                           ))}
                         </select>
                       </div>
-                
-                      
                     </div>
                   </div>
 
@@ -512,10 +513,11 @@ const CourtPlayer = ({ checkedPlayers }) => {
                     </h4>
                     <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center gap-3">
-                        <select 
-                          value={match.team1.player1?.id || ''} 
+                        <select
+                          value={match.team1.player1?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team1', 'player1',e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
+                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value=''>{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team1', 'player1').map(player => (
@@ -541,10 +543,11 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </AnimatePresence>
                       </div>
                       <div className="flex items-center gap-3">
-                        <select 
-                          value={match.team1.player2?.id || ''} 
+                        <select
+                          value={match.team1.player2?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team1', 'player2', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
+                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team1', 'player2').map(player => (
@@ -585,10 +588,11 @@ const CourtPlayer = ({ checkedPlayers }) => {
                     </h4>
                     <div className="gap-2 grid grid-cols-2">
                       <div className="flex items-center gap-3">
-                        <select 
-                          value={match.team2.player1?.id || ''} 
+                        <select
+                          value={match.team2.player1?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team2', 'player1', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
+                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team2', 'player1').map(player => (
@@ -614,10 +618,11 @@ const CourtPlayer = ({ checkedPlayers }) => {
                           </AnimatePresence>
                       </div>
                       <div className="flex items-center gap-3">
-                        <select 
-                          value={match.team2.player2?.id || ''} 
+                        <select
+                          value={match.team2.player2?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team2', 'player2', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs"
+                          disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
+                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team2', 'player2').map(player => (
@@ -645,19 +650,31 @@ const CourtPlayer = ({ checkedPlayers }) => {
                     </div>
                   </div>
 
-                  {/* End Match Button */}
-                  <button 
-                    onClick={() => {
-                      toggleMatch(match.id);
-                      //handleToggleMatch(match.id);
-                      //endMatch(match.id)
-                      
-                    }}
-                    className={`py-2 rounded-lg focus:outline-none w-full font-medium text-white text-base transition-colors ${
-                      activeMatchId[match.id] ? "bg-red-500" : "bg-green-500"}`}
+                  {/* Action buttons — 3-step lifecycle */}
+                  {(!match.matchStatus || match.matchStatus === 'draft') && (
+                    <button
+                      onClick={() => handleQueueMatch(match.id)}
+                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-amber-500 hover:bg-amber-600 active:bg-amber-700 transition-colors"
                     >
-                    {activeMatchId[match.id] ? t("End Match") : t("startMatch")}
-                  </button>
+                      {t('Set as Waiting')}
+                    </button>
+                  )}
+                  {match.matchStatus === 'waiting' && (
+                    <button
+                      onClick={() => handleStartMatch(match.id)}
+                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors"
+                    >
+                      {t('startMatch')}
+                    </button>
+                  )}
+                  {match.matchStatus === 'playing' && (
+                    <button
+                      onClick={() => handleEndMatch(match.id)}
+                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors"
+                    >
+                      {t('End Match')}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}

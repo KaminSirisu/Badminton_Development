@@ -90,5 +90,14 @@
   "Check this player?": "ยืนยันการเช็คใช่ไหม",
   "Uncheck this player?": "ยกเลิกการเช็คใช่ไหม",
   "Please complete the court and player selection": "กรุณาเลือกสนามและผู้เล่นให้เรียบร้อย",
-  "End Match": "จบเกม"
+  "End Match": "จบเกม",
+  "Payment Details": "รายละเอียดการชำระเงิน",
+  "Bank": "ธนาคาร",
+  "Account Name": "ชื่อบัญชี",
+  "Account Number": "หมายเลขบัญชี",
+  "No payment details added for this club yet": "ยังไม่มีรายละเอียดการชำระเงินที่เพิ่มสำหรับก๊วนนี้",
+  "Live Scores": "คะแนนสด",
+  "Set as Waiting": "ตั้งเป็นรอเล่น",
+  "No matches scheduled today": "ยังไม่มีการแข่งขันวันนี้",
+  "QR linked": "ยังไม่มี QR ที่เชื่อมกับก๊วนนี้"
 }

@@ -89,5 +89,14 @@
   "Check this player?": "Check this player?",
   "Uncheck this player?": "Uncheck this player?",
   "Please complete the court and player selection": "Please complete the court and player selection",
-  "End Match": "End Match"
+  "End Match": "End Match",
+  "Payment Details": "Payment Details",
+  "Bank": "Bank",
+  "Account Name": "Account Name",
+  "Account Number": "Account Number",
+  "No payment details added for this club yet": "No payment details added for this club yet",
+  "Live Scores": "Live Scores",
+  "Set as Waiting": "Set as Waiting",
+  "No matches scheduled today": "No matches scheduled today",
+  "QR linked": "No QR linked to this club yet"
 }

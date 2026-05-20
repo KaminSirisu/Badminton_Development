@@ -19,30 +19,38 @@ const Setting = () => {
   const [club, setClub] = useState([]);
   const [admin, setAdmin] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
-  const [editingRowIndex, setEditingRowIndex] = useState(null);
-  const { createClubs, getClubData, getAdminNameAcc, updateClub, deleteClub, updateUserName, fetchUser } = useAuth();
+  const [editingClubId, setEditingClubId] = useState(null);
+  const { createClubs, getClubData, getClubById, getAdminNameAcc, updateClub, deleteClub, updateUserName, fetchUser, getAvailablePaymentQrFiles } = useAuth();
   const formRef = useRef(null);
+  const [paymentQrFile, setPaymentQrFile] = useState(null);
+  const [paymentQrPreview, setPaymentQrPreview] = useState(null);
+  const [selectedPaymentQrFileId, setSelectedPaymentQrFileId] = useState('');
+  const [availablePaymentQrFiles, setAvailablePaymentQrFiles] = useState([]);
+  const [editPaymentQrFile, setEditPaymentQrFile] = useState(null);
+  const [editPaymentQrPreview, setEditPaymentQrPreview] = useState(null);
   const [editFormData, setEditFormData] = useState({
     clubName: '',
     startPrice: '',
     daysPlaying: '',
     startTime: '',
     endTime: '',
-    pricePerGame: ''
+    pricePerGame: '',
+    paymentBank: '',
+    paymentAccountName: '',
+    paymentAccountNumber: '',
+    paymentQrFileId: null
   })
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  const cleanedFormData = {
-    ...editFormData,
-    startPrice: parseInt(editFormData.startPrice) || 0,
-    pricePerGame: parseInt(editFormData.pricePerGame) || 0
-  };
-
-
   const fetchClubs = async () => {
     const data = await getClubData();
     setClub(data);
+  };
+
+  const fetchPaymentQrFiles = async () => {
+    const files = await getAvailablePaymentQrFiles();
+    setAvailablePaymentQrFiles(files);
   };
 
   useEffect(() => {
@@ -61,6 +69,14 @@ const Setting = () => {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    const loadPaymentQrFiles = async () => {
+      await fetchPaymentQrFiles();
+    };
+
+    loadPaymentQrFiles();
+  }, []);
+
   const handleSumbit = async (e) => {
     e.preventDefault();
     const clubName = formRef.current.name.value;
@@ -69,15 +85,34 @@ const Setting = () => {
     const daysPlaying = selectedDays.join(",");
     const startTime = formRef.current.startTime.value;
     const endTime = formRef.current.endTime.value;
+    const paymentBank = formRef.current.paymentBank.value;
+    const paymentAccountName = formRef.current.paymentAccountName.value;
+    const paymentAccountNumber = formRef.current.paymentAccountNumber.value;
 
     if (!clubName || !startPrice || !pricePerGame || !daysPlaying || !startTime || !endTime) {
       toast.error(t("Please fill out the entire form"));
     } else {
-      const userInfo = {clubName, startPrice, pricePerGame, daysPlaying, startTime, endTime};
+      const userInfo = {
+        clubName, 
+        startPrice, 
+        pricePerGame, 
+        daysPlaying, 
+        startTime, 
+        endTime,
+        paymentBank,
+        paymentAccountName,
+        paymentAccountNumber,
+        paymentQrFile,
+        paymentQrFileId: selectedPaymentQrFileId || null,
+      };
       await createClubs(userInfo);
       formRef.current.reset();
       setSelectedDays([]);
+      setPaymentQrFile(null);
+      setPaymentQrPreview(null);
+      setSelectedPaymentQrFileId('');
       await fetchClubs();
+      await fetchPaymentQrFiles();
 
       const updatedData = await getClubData();
       setClub(updatedData);
@@ -115,7 +150,79 @@ const Setting = () => {
     
   ]
 
-  const toggleModal = () => setIsOpen(!isOpen);
+  const closeModal = () => {
+    setIsOpen(false);
+    setEditingClubId(null);
+    setEditPaymentQrFile(null);
+    setEditPaymentQrPreview(null);
+  };
+
+  const openEditModal = (clubRow) => {
+    setEditFormData({
+      clubName: clubRow.clubName,
+      startPrice: clubRow.startPrice,
+      daysPlaying: clubRow.playingDay,
+      startTime: clubRow.startTime,
+      endTime: clubRow.endTime,
+      pricePerGame: clubRow.pricePerGame,
+      paymentBank: clubRow.paymentBank || '',
+      paymentAccountName: clubRow.paymentAccountName || '',
+      paymentAccountNumber: clubRow.paymentAccountNumber || '',
+      paymentQrFileId: clubRow.paymentQrFileId || null,
+    });
+    setEditPaymentQrPreview(clubRow.paymentQrDisplayUrl || clubRow.paymentQrDownloadUrl || clubRow.paymentQrPreviewUrl || null);
+    setEditPaymentQrFile(null);
+    setEditingClubId(clubRow.id);
+    setIsOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!editingClubId) return;
+
+    const cleanedFormData = {
+      clubName: editFormData.clubName.trim(),
+      startPrice: parseInt(editFormData.startPrice, 10) || 0,
+      pricePerGame: parseInt(editFormData.pricePerGame, 10) || 0,
+      daysPlaying: editFormData.daysPlaying,
+      startTime: editFormData.startTime,
+      endTime: editFormData.endTime,
+      paymentBank: editFormData.paymentBank,
+      paymentAccountName: editFormData.paymentAccountName,
+      paymentAccountNumber: editFormData.paymentAccountNumber,
+      paymentQrFile: editPaymentQrFile,
+      paymentQrFileId: editFormData.paymentQrFileId,
+    };
+
+    if (
+      !cleanedFormData.clubName ||
+      !cleanedFormData.startPrice ||
+      !cleanedFormData.pricePerGame ||
+      !cleanedFormData.daysPlaying ||
+      !cleanedFormData.startTime ||
+      !cleanedFormData.endTime
+    ) {
+      toast.error(t("Please fill out the entire form"));
+      return;
+    }
+
+    try {
+      const updatedClub = await updateClub(editingClubId, cleanedFormData);
+      if (updatedClub) {
+        setClub((prevClub) =>
+          prevClub.map((currentClub) =>
+            currentClub.id === updatedClub.id ? updatedClub : currentClub
+          )
+        );
+      }
+      closeModal();
+      await fetchClubs();
+      await fetchPaymentQrFiles();
+    } catch (error) {
+      // Keep the modal open if Appwrite rejects the update.
+    }
+  };
 
   return (
     <div className="flex flex-col bg-neutral-100 w-full min-h-screen">
@@ -186,6 +293,67 @@ const Setting = () => {
                     placeholder="End Time"
                     className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-sm md:text-base"
                   />
+                  <label htmlFor="paymentBank" className="text-[12px] text-gray-600 md:text-base">Payment Bank (e.g., KBank)</label>
+                  <input
+                    type="text"
+                    name="paymentBank"
+                    placeholder="Payment Bank"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
+                  />
+                  <label htmlFor="paymentAccountName" className="text-[12px] text-gray-600 md:text-base">Account Holder Name</label>
+                  <input
+                    type="text"
+                    name="paymentAccountName"
+                    placeholder="Account Holder Name"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
+                  />
+                  <label htmlFor="paymentAccountNumber" className="text-[12px] text-gray-600 md:text-base">Account Number</label>
+                  <input
+                    type="text"
+                    name="paymentAccountNumber"
+                    placeholder="Account Number"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
+                  />
+                      <label htmlFor="paymentQR" className="text-[12px] text-gray-600 md:text-base">Payment QR Code</label>
+                  <select
+                    value={selectedPaymentQrFileId}
+                    onChange={(e) => {
+                      const nextFileId = e.target.value;
+                      const selectedFile = availablePaymentQrFiles.find((file) => file.id === nextFileId);
+
+                      setSelectedPaymentQrFileId(nextFileId);
+                      setPaymentQrFile(null);
+                      setPaymentQrPreview(selectedFile?.paymentQrDisplayUrl || null);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
+                  >
+                    <option value="">Use uploaded QR or none</option>
+                    {availablePaymentQrFiles.map((file) => (
+                      <option key={file.id} value={file.id}>
+                        {file.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="file"
+                    name="paymentQR"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedPaymentQrFileId('');
+                        setPaymentQrFile(file);
+                        const preview = URL.createObjectURL(file);
+                        setPaymentQrPreview(preview);
+                      }
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
+                  />
+                  {paymentQrPreview && (
+                    <div className="flex justify-center">
+                      <img src={paymentQrPreview} alt="QR Preview" className="w-24 h-24 border rounded" />
+                    </div>
+                  )}
                   <button
                     type="submit"
                     className="bg-blue-500 hover:bg-blue-700 mx-auto mt-3 px-4 py-2 rounded-md w-fit text-white"
@@ -226,17 +394,7 @@ const Setting = () => {
                               <td className="px-6 py-4 text-center whitespace-nowrap">
                                 <button
                                   onClick={() => {
-                                    const row = club[i];
-                                    setEditFormData({
-                                      clubName: row.clubName,
-                                      startPrice: row.startPrice,
-                                      daysPlaying: row.playingDay,
-                                      startTime: row.startTime,
-                                      endTime: row.endTime,
-                                      pricePerGame: row.pricePerGame,
-                                    });
-                                    setEditingRowIndex(i);
-                                    toggleModal();
+                                    openEditModal(club[i]);
                                   }}
                                   className="text-blue-500 hover:text-blue-600"
                                 >
@@ -253,131 +411,6 @@ const Setting = () => {
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
-                                {isOpen &&
-                                  ReactDOM.createPortal(
-                                    <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/50">
-                                      <div className="bg-white shadow-lg p-6 rounded-lg w-full max-w-md">
-                                        <h2 className="mb-4 font-semibold text-lg">{t('editClub')}</h2>
-                                        <form
-                                          onSubmit={async (e) => {
-                                            e.preventDefault();
-                                            await updateClub(club[editingRowIndex].id, cleanedFormData);
-                                            toggleModal();
-                                            await fetchClubs();
-                                          }}
-                                          className="flex flex-col gap-3"
-                                        >
-                                          <label htmlFor="clubName" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('club name')}
-                                          </label>
-                                          <input
-                                            type="text"
-                                            placeholder={t('club name')}
-                                            value={editFormData.clubName}
-                                            onChange={(e) =>
-                                              setEditFormData({ ...editFormData, clubName: e.target.value })
-                                            }
-                                            className="p-1 border rounded"
-                                            required
-                                          />
-                                          <label htmlFor="startPrice" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('startPrice')}
-                                          </label>
-                                          <input
-                                            type="number"
-                                            placeholder={t('startPrice')}
-                                            value={editFormData.startPrice}
-                                            onChange={(e) =>
-                                              setEditFormData({ ...editFormData, startPrice: e.target.value })
-                                            }
-                                            className="p-1 border rounded"
-                                            required
-                                          />
-                                          <label htmlFor="dayPlaying" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('playingDays')}
-                                          </label>
-                                          <div className="gap-y-2 md:gap-x-4 grid grid-cols-4">
-                                            {daysOfWeek.map((day) => (
-                                              <label key={day} className="flex items-center gap-1 md:gap-3">
-                                                <input
-                                                  type="checkbox"
-                                                  value={day}
-                                                  checked={editFormData.daysPlaying.split(',').includes(day)}
-                                                  onChange={(e) => {
-                                                    let daysArr = editFormData.daysPlaying
-                                                      ? editFormData.daysPlaying.split(',')
-                                                      : [];
-                                                    if (e.target.checked) {
-                                                      daysArr = [...daysArr, day];
-                                                    } else {
-                                                      daysArr = daysArr.filter((d) => d !== day);
-                                                    }
-                                                    setEditFormData({ ...editFormData, daysPlaying: daysArr.join(',') });
-                                                  }}
-                                                />
-                                                <span className="text-[12px] md:text-sm">{t(`${day}`)}</span>
-                                              </label>
-                                            ))}
-                                          </div>
-                                          <label htmlFor="startTime" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('startTime')}
-                                          </label>
-                                          <input
-                                            type="time"
-                                            placeholder={t('startTime')}
-                                            value={editFormData.startTime}
-                                            onChange={(e) =>
-                                              setEditFormData({ ...editFormData, startTime: e.target.value })
-                                            }
-                                            className="p-1 border rounded"
-                                            required
-                                          />
-                                          <label htmlFor="endTime" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('endTime')}
-                                          </label>
-                                          <input
-                                            type="time"
-                                            placeholder={t('endTime')}
-                                            value={editFormData.endTime}
-                                            onChange={(e) =>
-                                              setEditFormData({ ...editFormData, endTime: e.target.value })
-                                            }
-                                            className="p-1 border rounded"
-                                            required
-                                          />
-                                          <label htmlFor="pricePerGame" className="text-[12px] text-gray-600 md:text-base">
-                                            {t('perGame')}
-                                          </label>
-                                          <input
-                                            type="number"
-                                            placeholder={t('perGame')}
-                                            value={editFormData.pricePerGame}
-                                            onChange={(e) =>
-                                              setEditFormData({ ...editFormData, pricePerGame: e.target.value })
-                                            }
-                                            className="p-1 border rounded"
-                                            required
-                                          />
-                                          <div className="flex justify-end gap-2 mt-4">
-                                            <button
-                                              type="button"
-                                              onClick={toggleModal}
-                                              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg"
-                                            >
-                                              {t('cancel')}
-                                            </button>
-                                            <button
-                                              type="submit"
-                                              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-white"
-                                            >
-                                              {t('save')}
-                                            </button>
-                                          </div>
-                                        </form>
-                                      </div>
-                                    </div>,
-                                    document.body
-                                  )}
                               </td>
                             </tr>
                           ))}
@@ -388,6 +421,205 @@ const Setting = () => {
                 </div>
               </div>
             </div>
+            {isOpen &&
+              ReactDOM.createPortal(
+                <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/50">
+                  <div className="bg-white shadow-lg p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+                    <h2 className="mb-4 font-semibold text-lg">{t('editClub')}</h2>
+                    <form onSubmit={handleEditSubmit} className="flex flex-col gap-3">
+                      <label htmlFor="clubName" className="text-[12px] text-gray-600 md:text-base">
+                        {t('club name')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={t('club name')}
+                        value={editFormData.clubName}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, clubName: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                        required
+                      />
+                      <label htmlFor="startPrice" className="text-[12px] text-gray-600 md:text-base">
+                        {t('startPrice')}
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={t('startPrice')}
+                        value={editFormData.startPrice}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, startPrice: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                        required
+                      />
+                      <label htmlFor="dayPlaying" className="text-[12px] text-gray-600 md:text-base">
+                        {t('playingDays')}
+                      </label>
+                      <div className="gap-y-2 md:gap-x-4 grid grid-cols-4">
+                        {daysOfWeek.map((day) => (
+                          <label key={day} className="flex items-center gap-1 md:gap-3">
+                            <input
+                              type="checkbox"
+                              value={day}
+                              checked={editFormData.daysPlaying.split(',').includes(day)}
+                              onChange={(e) => {
+                                let daysArr = editFormData.daysPlaying
+                                  ? editFormData.daysPlaying.split(',')
+                                  : [];
+                                if (e.target.checked) {
+                                  daysArr = [...daysArr, day];
+                                } else {
+                                  daysArr = daysArr.filter((d) => d !== day);
+                                }
+                                setEditFormData({ ...editFormData, daysPlaying: daysArr.join(',') });
+                              }}
+                            />
+                            <span className="text-[12px] md:text-sm">{t(`${day}`)}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <label htmlFor="startTime" className="text-[12px] text-gray-600 md:text-base">
+                        {t('startTime')}
+                      </label>
+                      <input
+                        type="time"
+                        placeholder={t('startTime')}
+                        value={editFormData.startTime}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, startTime: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                        required
+                      />
+                      <label htmlFor="endTime" className="text-[12px] text-gray-600 md:text-base">
+                        {t('endTime')}
+                      </label>
+                      <input
+                        type="time"
+                        placeholder={t('endTime')}
+                        value={editFormData.endTime}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, endTime: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                        required
+                      />
+                      <label htmlFor="pricePerGame" className="text-[12px] text-gray-600 md:text-base">
+                        {t('perGame')}
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={t('perGame')}
+                        value={editFormData.pricePerGame}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, pricePerGame: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                        required
+                      />
+                      <label htmlFor="paymentBank" className="text-[12px] text-gray-600 md:text-base">
+                        Payment Bank
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Payment Bank"
+                        value={editFormData.paymentBank}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, paymentBank: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                      />
+                      <label htmlFor="paymentAccountName" className="text-[12px] text-gray-600 md:text-base">
+                        Account Holder Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Account Holder Name"
+                        value={editFormData.paymentAccountName}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, paymentAccountName: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                      />
+                      <label htmlFor="paymentAccountNumber" className="text-[12px] text-gray-600 md:text-base">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Account Number"
+                        value={editFormData.paymentAccountNumber}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, paymentAccountNumber: e.target.value })
+                        }
+                        className="p-1 border rounded"
+                      />
+                      <label htmlFor="editPaymentQR" className="text-[12px] text-gray-600 md:text-base">
+                        Payment QR Code
+                      </label>
+                      <select
+                        value={editFormData.paymentQrFileId || ''}
+                        onChange={(e) => {
+                          const nextFileId = e.target.value || null;
+                          const selectedFile = availablePaymentQrFiles.find((file) => file.id === nextFileId);
+
+                          setEditFormData({ ...editFormData, paymentQrFileId: nextFileId });
+                          setEditPaymentQrFile(null);
+                          setEditPaymentQrPreview(selectedFile?.paymentQrDisplayUrl || null);
+                        }}
+                        className="p-1 border rounded"
+                      >
+                        <option value="">No linked QR</option>
+                        {availablePaymentQrFiles.map((file) => (
+                          <option key={file.id} value={file.id}>
+                            {file.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="file"
+                        name="editPaymentQR"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setEditFormData({ ...editFormData, paymentQrFileId: null });
+                            setEditPaymentQrFile(file);
+                            const preview = URL.createObjectURL(file);
+                            setEditPaymentQrPreview(preview);
+                          }
+                        }}
+                        className="p-1 border rounded"
+                      />
+                      {editPaymentQrPreview ? (
+                        <div className="flex justify-center">
+                          <img src={editPaymentQrPreview} alt="QR Preview" className="w-20 h-20 border rounded" />
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-xs md:text-sm">
+                          No QR linked to this club yet.
+                        </p>
+                      )}
+                      <div className="flex justify-end gap-2 mt-4">
+                        <button
+                          type="button"
+                          onClick={closeModal}
+                          className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg"
+                        >
+                          {t('cancel')}
+                        </button>
+                        <button
+                          type="submit"
+                          className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-white"
+                        >
+                          {t('save')}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>,
+                document.body
+              )}
           </>
         ) : (
           <>
