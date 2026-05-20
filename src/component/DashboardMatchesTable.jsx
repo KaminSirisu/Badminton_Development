@@ -20,21 +20,6 @@ const computeSetScore = (sets) => {
   return { teamA, teamB };
 };
 
-const formatStartTime = (startTime) => {
-  if (!startTime) return '';
-
-  const date = new Date(startTime);
-  if (!isNaN(date.getTime())) {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  }
-
-  return startTime;
-};
-
 const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
   const sets = parseSetScores(match.matchScore);
   const { teamA: teamAWins, teamB: teamBWins } = computeSetScore(sets);
@@ -59,32 +44,32 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
 
   return (
     <div
-      className={`grid grid-cols-[90px_1fr_90px] sm:grid-cols-[150px_1fr_170px] px-3 sm:px-6 py-1 sm:py-2 gap-2 sm:gap-4 items-center ${
+      className={`grid grid-cols-[90px_1fr_90px] sm:grid-cols-[150px_1fr_170px] px-3 sm:px-6 py-1.5 sm:py-2 gap-2 sm:gap-4 items-center ${
         !isLast ? 'border-b border-gray-100' : ''
       }`}
     >
       <div className="flex flex-col items-center text-center">
         {isWaiting ? (
           <>
-            <div className="text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold">
+            <div className="font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
               UPCOMING
             </div>
-            <div className="font-bold text-sm sm:text-xl text-gray-800 leading-tight mt-0.5">
-              {formatStartTime(match.startTime)}
-            </div>
-            <span className="mt-1.5 text-[9px] sm:text-[10px] bg-gray-200 text-gray-600 px-2 sm:px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+            {/* <div className="mt-0.5 font-bold text-gray-800 text-sm sm:text-xl leading-tight">
+              TBD
+            </div> */}
+            <span className="bg-gray-200 mt-1.5 px-2 sm:px-2.5 py-0.5 rounded-full font-semibold text-[9px] text-gray-600 sm:text-[10px] uppercase tracking-wide">
               WAITING
             </span>
           </>
         ) : (
           <>
             {isPlaying && (
-              <div className="flex items-center gap-1 text-red-500 text-[10px] sm:text-xs font-bold">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <div className="flex items-center gap-1 font-bold text-[10px] text-red-500 sm:text-xs">
+                <span className="inline-block bg-red-500 rounded-full w-1.5 h-1.5 animate-pulse" />
                 LIVE
               </div>
             )}
-            <div className="font-extrabold text-2xl sm:text-4xl text-gray-800 leading-none">
+            <div className="font-extrabold text-gray-800 text-2xl sm:text-4xl leading-none">
               {match.totalTime ?? '-'}&apos;
             </div>
             <span
@@ -100,7 +85,7 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
 
       <div className='flex flex-row justify-center'>
         <div className="mb-2">
-          <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-0.5">
+          <div className="mb-0.5 font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
             TEAM A
           </div>
           <div className="flex items-start gap-1.5">
@@ -110,20 +95,20 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
                   <div
                     key={index}
                     className={`text-xs sm:text-sm leading-snug ${
-                      teamAWon ? 'font-semibold text-gray-900' : 'text-gray-600'
+                      teamAWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
                     }`}
                   >
                     {player}
                   </div>
                 ))
               ) : (
-                <div className="text-xs sm:text-sm text-gray-400 italic">TBD</div>
+                <div className="text-gray-400 text-xs sm:text-sm italic">TBD</div>
               )}
             </div>
             {teamAWon && (
-              <div className="flex items-center gap-1 mt-0.5 flex-shrink-0">
-                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
-                <span className="text-[10px] sm:text-xs font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full leading-tight">
+              <div className="flex flex-shrink-0 items-center gap-1 mt-0.5">
+                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />
+                <span className="bg-green-100 px-1.5 py-0.5 rounded-full font-semibold text-[10px] text-green-600 sm:text-xs leading-tight">
                   Won
                 </span>
               </div>
@@ -131,10 +116,10 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
           </div>
         </div>
 
-        <div className="border-l border-dashed border-gray-200 mx-5" />
+        <div className="mx-5 border-gray-200 border-l border-dashed" />
 
         <div>
-          <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-0.5">
+          <div className="mb-0.5 font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
             TEAM B
           </div>
           <div className="flex items-start gap-1.5">
@@ -144,20 +129,20 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
                   <div
                     key={index}
                     className={`text-xs sm:text-sm leading-snug ${
-                      teamBWon ? 'font-semibold text-gray-900' : 'text-gray-600'
+                      teamBWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
                     }`}
                   >
                     {player}
                   </div>
                 ))
               ) : (
-                <div className="text-xs sm:text-sm text-gray-400 italic">TBD</div>
+                <div className="text-gray-400 text-xs sm:text-sm italic">TBD</div>
               )}
             </div>
             {teamBWon && (
-              <div className="flex items-center gap-1 mt-0.5 flex-shrink-0">
-                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
-                <span className="text-[10px] sm:text-xs font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full leading-tight">
+              <div className="flex flex-shrink-0 items-center gap-1 mt-0.5">
+                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />
+                <span className="bg-green-100 px-1.5 py-0.5 rounded-full font-semibold text-[10px] text-green-600 sm:text-xs leading-tight">
                   Won
                 </span>
               </div>
@@ -181,7 +166,7 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
           </button>
         ) : (
           <>
-            <div className="font-extrabold text-2xl sm:text-4xl text-gray-800 leading-none tracking-tight">
+            <div className="font-extrabold text-gray-800 text-2xl sm:text-4xl leading-none tracking-tight">
               {teamAWins}&nbsp;:&nbsp;{teamBWins}
             </div>
             {sets.length > 0 && (
@@ -213,7 +198,7 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
 const DashboardMatchesTable = ({ matches, notifiedMatches, onToggleNotify }) => {
   if (matches.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-400 text-sm">
+      <div className="py-16 text-gray-400 text-sm text-center">
         No matches scheduled today
       </div>
     );
@@ -221,16 +206,16 @@ const DashboardMatchesTable = ({ matches, notifiedMatches, onToggleNotify }) => 
 
   return (
     <>
-      <div className="hidden sm:grid grid-cols-[150px_1fr_170px] bg-gray-800 text-white text-[11px] font-semibold uppercase tracking-wider px-6 py-3 gap-4 text-center">
+      <div className="hidden gap-4 sm:grid grid-cols-[150px_1fr_170px] bg-gray-800 px-6 py-3 font-semibold text-[11px] text-white text-center uppercase tracking-wider">
         <div>
           <div>Match Time</div>
-          <div className="text-gray-400 font-normal normal-case text-[10px] mt-0.5">
+          <div className="mt-0.5 font-normal text-[10px] text-gray-400 normal-case">
             Total play time status
           </div>
         </div>
         <div className='text-center'>
           <div>Teams &amp; Players</div>
-          <div className="text-gray-400 font-normal normal-case text-[10px] mt-0.5">
+          <div className="mt-0.5 font-normal text-[10px] text-gray-400 normal-case">
             Members of each duo team
           </div>
         </div>

@@ -359,16 +359,16 @@ const CourtPlayer = ({ checkedPlayers }) => {
   return (
     <div className="bg-neutral-50 w-full min-h-screen overflow-auto">
       <Navbar />
-      <div className="mx-2 md:mx-4 mt-5 md:mt-7">
+      <div className="mx-2 md:mx-4 mt-3 md:mt-5">
         
         <div className="flex justify-between items-center mx-auto md:mt-1">
 
           <div className="flex flex-row items-center gap-1 md:gap-3">
-            <Link to="/" className=''>
-              <ArrowLeft className="bg-white shadow-md border rounded-3xl w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer"/>
+            <Link to="/" className="top-17 left-4 z-50 fixed bg-white shadow-lg hover:shadow-xl border border-gray-200 rounded-full transition">
+              <ArrowLeft className="w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer"/>
             </Link>
 
-            <h1 className='px-1 uppercase head-text'>{t('matchmaking')}</h1>
+            <h1 className='pl-12 uppercase head-text'>{t('matchmaking')}</h1>
             {/* <h2 className="text-[11px] text-gray-500 md:text-[14px]">Create balanced matches for your club members</h2> */}
 
           </div> 
@@ -376,7 +376,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
           <div className="flex flex-row items-center gap-1 md:gap-2">
             {/* Suggest */}
             <button 
-              className="flex items-center shadow-md px-2 sm:px-1.5 py-1 sm:py-1.5 border rounded-3xl gap-1 bg-white hover:bg-gray-500 text-black hover:text-white transition-colors"
+              className="flex items-center gap-1 bg-white hover:bg-gray-500 shadow-sm px-2 py-1 rounded-2xl text-black hover:text-white transition-colors"
               onClick={() => {
                 // Filter out checked players before generating matches
                 const uncheckedPlayers = players.filter(player => !checkedPlayers[player.id]);
@@ -397,7 +397,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
             {/* History */}
             <button 
               onClick={() => setShowHistory(true)}
-              className="flex items-center gap-1 bg-white hover:bg-gray-600 shadow-md px-2 py-2 border rounded-2xl text-gray-600 hover:text-white"
+              className="flex items-center gap-1 bg-white hover:bg-gray-600 shadow-sm px-2 py-1.5 border rounded-2xl text-gray-600 hover:text-white text-xs"
             >
               <History className="flex justify-center" size={15} />
               {/* <h1 className="font-medium text-xs md:text-sm">History</h1> */}
@@ -405,7 +405,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
             {/* Create Match */}
             <button 
               onClick={handleSubmit}
-              className="flex items-center gap-1 bg-white hover:bg-blue-600 shadow-md px-2 py-2 border rounded-2xl text-blue-600 hover:text-white transition-colors"
+              className="flex items-center gap-1 bg-white hover:bg-blue-600 shadow-sm px-2 py-1.5 border rounded-2xl text-blue-600 hover:text-white text-xs transition-colors"
             >
               <Plus size={15} />
               <h1 className="font-medium text-xs md:text-sm">{t('newMatch')}</h1>
@@ -415,11 +415,11 @@ const CourtPlayer = ({ checkedPlayers }) => {
         </div>
         
       </div>
-      <div className="mx-auto mt-3 md:mt-7 max-w-7xl">
+      <div className="mx-auto mt-2 md:mt-4 max-w-7xl">
         
         {/* Matches Grid */}
         <AnimatePresence>
-          <div className="gap-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mx-4 md:mx-6">
+          <div className="gap-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mx-4 md:mx-6">
             {matches.map(match => (
               <motion.div 
                 key={match.id} 
@@ -427,7 +427,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white shadow-md border rounded-lg overflow-hidden"
+                className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden"
               >
                 {/* <div className="flex justify-between items-center bg-gradient-to-r from-blue-500 to-purple-600 p-3 text-white">
                   <div className="flex items-center gap-1">
@@ -438,21 +438,21 @@ const CourtPlayer = ({ checkedPlayers }) => {
                     <X size={16} className="text-white hover:text-red-500" />
                   </button>
                 </div> */}
-                <div className="p-3">
+                <div className="p-2.5">
                   {/* Card header: status badge + delete */}
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-1.5">
                     {match.matchStatus === 'waiting' && (
-                      <span className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                      <span className="flex items-center gap-1 bg-amber-100 px-2 py-0.5 rounded-full font-semibold text-[10px] text-amber-700 uppercase tracking-wide">
                         <Clock size={10} /> Waiting
                       </span>
                     )}
                     {match.matchStatus === 'playing' && (
-                      <span className="flex items-center gap-1 bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">
+                      <span className="flex items-center gap-1 bg-red-100 px-2 py-0.5 rounded-full font-semibold text-[10px] text-red-600 uppercase tracking-wide animate-pulse">
                         <Radio size={10} /> Live
                       </span>
                     )}
                     {(!match.matchStatus || match.matchStatus === 'draft') && (
-                      <span className="flex items-center gap-1 bg-gray-100 text-gray-500 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                      <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-full font-semibold text-[10px] text-gray-500 uppercase tracking-wide">
                         Draft
                       </span>
                     )}
@@ -468,13 +468,13 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   </div>
 
                   {/* Skill Filter for this match */}
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <div className="flex justify-center items-center gap-2">
                       {/* Court Number */}
-                      <div className="flex flex-row gap-2 md:gap-4">
-                        <img src={tennisCourt} alt="Tennis Court" className="self-center w-7 h-7"/>
+                      <div className="flex flex-row items-center gap-2 md:gap-3">
+                        <img src={tennisCourt} alt="Tennis Court" className="self-center w-6 h-6"/>
                         <select
-                          className="mt-1 px-1 py-2 border border-gray-300 rounded-lg text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 mt-1 px-2 py-1.5 border border-gray-300 rounded-lg text-[10px] disabled:cursor-not-allowed"
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
                           onChange={e => {
                             const courtNum = parseInt(e.target.value);
@@ -495,7 +495,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                           value={skillFilters[match.id] || 'All'}
                           onChange={(e) => updateSkillFilter(match.id, e.target.value)}
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
-                          className="px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-[10px] disabled:cursor-not-allowed"
                         >
                           {skillLevels.map(level => (
                             <option key={level} value={level}>{t(`${level}`)}</option>
@@ -506,18 +506,18 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   </div>
 
                   {/* Team 1 */}
-                  <div className="mb-3">
-                    <h4 className="flex items-center gap-1 mb-2 font-semibold text-gray-800 text-sm">
+                  <div className="mb-2">
+                    <h4 className="flex items-center gap-1 mb-1.5 font-semibold text-gray-800 text-xs">
                       <div className="bg-blue-500 rounded-full w-2 h-2"></div>
                       {t('Team 1')}
                     </h4>
                     <div className="gap-2 grid grid-cols-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <select
                           value={match.team1.player1?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team1', 'player1',e.target.value)}
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:cursor-not-allowed"
                         >
                           <option value=''>{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team1', 'player1').map(player => (
@@ -542,12 +542,12 @@ const CourtPlayer = ({ checkedPlayers }) => {
                           )}
                         </AnimatePresence>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <select
                           value={match.team1.player2?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team1', 'player2', e.target.value)}
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team1', 'player2').map(player => (
@@ -577,22 +577,22 @@ const CourtPlayer = ({ checkedPlayers }) => {
 
                   {/* VS Divider */}
                   <div className="my-0 text-center">
-                    <span className="mx-2 font-semibold text-gray-500 text-sm">VS</span>
+                    <span className="mx-2 font-semibold text-gray-500 text-xs">VS</span>
                   </div>
 
                   {/* Team 2 */}
-                  <div className="mb-3">
-                    <h4 className="flex items-center gap-1 mb-2 font-semibold text-gray-800 text-sm">
+                  <div className="mb-2">
+                    <h4 className="flex items-center gap-1 mb-1.5 font-semibold text-gray-800 text-xs">
                       <div className="bg-red-500 rounded-full w-2 h-2"></div>
                       {t('Team 2')}
                     </h4>
                     <div className="gap-2 grid grid-cols-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <select
                           value={match.team2.player1?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team2', 'player1', e.target.value)}
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team2', 'player1').map(player => (
@@ -617,12 +617,12 @@ const CourtPlayer = ({ checkedPlayers }) => {
                             )}
                           </AnimatePresence>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <select
                           value={match.team2.player2?.id || ''}
                           onChange={(e) => selectPlayer(match.id, 'team2', 'player2', e.target.value)}
                           disabled={match.matchStatus === 'waiting' || match.matchStatus === 'playing'}
-                          className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="disabled:opacity-50 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-xs disabled:cursor-not-allowed"
                         >
                           <option value="">{t('selectPlayer')}</option>
                           {getFilteredPlayers(match.id, 'team2', 'player2').map(player => (
@@ -654,7 +654,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   {(!match.matchStatus || match.matchStatus === 'draft') && (
                     <button
                       onClick={() => handleQueueMatch(match.id)}
-                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-amber-500 hover:bg-amber-600 active:bg-amber-700 transition-colors"
+                      className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 py-1.5 rounded-xl w-full font-medium text-white text-xs transition-colors"
                     >
                       {t('Set as Waiting')}
                     </button>
@@ -662,7 +662,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   {match.matchStatus === 'waiting' && (
                     <button
                       onClick={() => handleStartMatch(match.id)}
-                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors"
+                      className="bg-green-500 hover:bg-green-600 active:bg-green-700 py-1.5 rounded-xl w-full font-medium text-white text-xs transition-colors"
                     >
                       {t('startMatch')}
                     </button>
@@ -670,7 +670,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                   {match.matchStatus === 'playing' && (
                     <button
                       onClick={() => handleEndMatch(match.id)}
-                      className="py-2 rounded-lg w-full font-medium text-white text-sm bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors"
+                      className="bg-red-500 hover:bg-red-600 active:bg-red-700 py-1.5 rounded-xl w-full font-medium text-white text-xs transition-colors"
                     >
                       {t('End Match')}
                     </button>
