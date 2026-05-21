@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, FileText } from "lucide-react";
 import { useAuth } from '../utils/AuthContext';
 import Navbar from '../component/Navbar';
-import Footer from '../component/Footer.jsx';
+import BottomNav from '../component/BottomNav';
 import PlayerDetailModal from '../component/PlayerDetailModal';
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 import { toast } from 'react-hot-toast';
@@ -17,14 +17,10 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
   const { getPlayers, getClubData, clearMatchesAndResetPlayers } = useAuth();
   
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  // const [checkedPlayers, setCheckedPlayers] = useState({});
   const [startPrice, setStartPrice] = useState(0);
   const [pricePerGame, setPricePerGame] = useState(0);
-  const [club, setClub] = useState([]);
-  const [matches, setMatches] = useState([]);
   const [skillFilter, setSkillFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState([]);
 
   const getSkillLevelColor = (skill) => {
@@ -47,47 +43,33 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
   // };
 
 
-  useEffect(() => {
-    const loadPlayers = async () => {
-      const data = await getPlayers();
-      setPlayers(data);
-      
-    };
-    loadPlayers();
-    
-  }, []);
-
-  const fetchPlayers = async () => {
-    setLoading(true);
+  const fetchPlayers = useCallback(async () => {
     try {
       const allPlayers = await getPlayers();
       const filtered = allPlayers.filter(player => player.club.includes(id));
       setPlayers(filtered);
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [getPlayers, id]);
   useEffect(() => {
     fetchPlayers();
-  }, [id]);
+  }, [fetchPlayers]);
 
-  const fetchClubs = async (id) => {
+  const fetchClubs = useCallback(async (clubId) => {
     const data = await getClubData();
-    setClub(data);
 
-    const currentClub = data.find(c => c.id === id);
+    const currentClub = data.find(c => c.id === clubId);
     if (currentClub) {
       setPricePerGame(currentClub.pricePerGame || 0);
       setStartPrice(currentClub.startPrice || 0);
     }
 
-  };
+  }, [getClubData]);
 
   useEffect(() => {
     fetchClubs(id);
-  }, [])
+  }, [fetchClubs, id])
 
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -104,14 +86,14 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
 
 
   return (
-    <div className="bg-neutral-100 w-full min-h-screen overflow-auto">
+    <div className="bg-neutral-100 w-full min-h-screen overflow-auto pb-16">
       <Navbar />
       <div className="flex justify-center items-center mx-2 md:mx-4 mt-3 md:mt-4 relatvie">
         <button
           onClick={() => navigate(-1)}
-          className="left-2 md:left-4 absolute"
+          className="top-[68px] left-4 z-50 fixed bg-white shadow-lg hover:shadow-xl border border-gray-200 rounded-full p-0.5 transition"
         >
-          <ArrowLeft className="bg-white shadow-md border rounded-3xl w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer" />
+          <ArrowLeft className="w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer" />
         </button>
         <h1 className="flex text-center uppercase head-text">{t('summary')}</h1>
       </div>
@@ -258,7 +240,6 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
             if (!confirmClear) return;
 
             // Instant UI update
-            setMatches([]);
             setPlayers(prev =>
               prev.map(player => ({ ...player, gamesPlayed: 0 }))
             );
@@ -270,7 +251,6 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
             toast.dismiss();
             
             if (result) {
-              setMatches([]); // clear match state
               setPlayers(prev =>
                 prev.map(player => ({ ...player, gamesPlayed: 0 }))
               );
@@ -294,7 +274,7 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
         pricePerGame={pricePerGame}
         startPrice={startPrice}
       />
-      <Footer />
+      <BottomNav />
     </div>
   );
 }

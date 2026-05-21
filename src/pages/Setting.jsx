@@ -1,18 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import Navbar from '../component/Navbar';
 import Table from '../component/Table';
-import Footer from '../component/Footer.jsx';
+import BottomNav from '../component/BottomNav';
 import { useAuth } from '../utils/AuthContext';
-import { Plus, Search, Users, Star, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 import { toast  } from 'react-hot-toast';
 
 const Setting = () => {
   const { t } = useLanguage(); 
-
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const formRef2 = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -20,12 +17,10 @@ const Setting = () => {
   const [admin, setAdmin] = useState([]);
   const [selectedDays, setSelectedDays] = useState([]);
   const [editingClubId, setEditingClubId] = useState(null);
-  const { createClubs, getClubData, getClubById, getAdminNameAcc, updateClub, deleteClub, updateUserName, fetchUser, getAvailablePaymentQrFiles } = useAuth();
+  const { createClubs, getClubData, getAdminNameAcc, updateClub, deleteClub, updateUserName, fetchUser } = useAuth();
   const formRef = useRef(null);
   const [paymentQrFile, setPaymentQrFile] = useState(null);
   const [paymentQrPreview, setPaymentQrPreview] = useState(null);
-  const [selectedPaymentQrFileId, setSelectedPaymentQrFileId] = useState('');
-  const [availablePaymentQrFiles, setAvailablePaymentQrFiles] = useState([]);
   const [editPaymentQrFile, setEditPaymentQrFile] = useState(null);
   const [editPaymentQrPreview, setEditPaymentQrPreview] = useState(null);
   const [editFormData, setEditFormData] = useState({
@@ -43,19 +38,14 @@ const Setting = () => {
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async () => {
     const data = await getClubData();
     setClub(data);
-  };
-
-  const fetchPaymentQrFiles = async () => {
-    const files = await getAvailablePaymentQrFiles();
-    setAvailablePaymentQrFiles(files);
-  };
+  }, [getClubData]);
 
   useEffect(() => {
     fetchClubs();
-  }, [])
+  }, [fetchClubs])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,19 +53,11 @@ const Setting = () => {
       setAdmin(admin);
     };
     fetchData();
-  }, []);
+  }, [getAdminNameAcc]);
 
   useEffect(() => {
     fetchUser();
-  }, []);
-
-  useEffect(() => {
-    const loadPaymentQrFiles = async () => {
-      await fetchPaymentQrFiles();
-    };
-
-    loadPaymentQrFiles();
-  }, []);
+  }, [fetchUser]);
 
   const handleSumbit = async (e) => {
     e.preventDefault();
@@ -103,16 +85,14 @@ const Setting = () => {
         paymentAccountName,
         paymentAccountNumber,
         paymentQrFile,
-        paymentQrFileId: selectedPaymentQrFileId || null,
+        paymentQrFileId: null,
       };
       await createClubs(userInfo);
       formRef.current.reset();
       setSelectedDays([]);
       setPaymentQrFile(null);
       setPaymentQrPreview(null);
-      setSelectedPaymentQrFileId('');
       await fetchClubs();
-      await fetchPaymentQrFiles();
 
       const updatedData = await getClubData();
       setClub(updatedData);
@@ -129,7 +109,7 @@ const Setting = () => {
       await fetchUser(); // refresh user data in UI after update
       // Optionally, reset form or do other UI updates
       setName(""); // clear input after success, or keep as is
-    } catch (error) {
+    } catch {
       // error handling already done inside updateUserName via toast
     }
   };
@@ -218,21 +198,20 @@ const Setting = () => {
       }
       closeModal();
       await fetchClubs();
-      await fetchPaymentQrFiles();
-    } catch (error) {
+    } catch {
       // Keep the modal open if Appwrite rejects the update.
     }
   };
 
   return (
-    <div className="flex flex-col bg-neutral-100 w-full min-h-screen">
+    <div className="flex flex-col bg-neutral-100 w-full min-h-screen pb-24">
       <Navbar />
       <div className="mx-2 md:mx-4 mt-2 md:mt-4">
-        <div className="flex flex-row">
-          <button onClick={() => navigate(-1)}>
-            <ArrowLeft className="bg-white shadow-lg border rounded-3xl w-6 md:w-8 h-6 md:h-8 text-blue-600 cursor-pointer" />
+        {/* <div className="flex flex-row">
+          <button onClick={() => navigate("/")} className="bg-white shadow-lg border rounded-3xl p-0.5" >
+            <ArrowLeft className="w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer" />
           </button>
-        </div>
+        </div> */}
         <h1 className="mx-2 md:mx-5 mt-2 md:mt-3 uppercase head-text">{t('setting')}</h1>
       </div>
       <div className="flex-grow">
@@ -314,26 +293,7 @@ const Setting = () => {
                     placeholder="Account Number"
                     className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
                   />
-                      <label htmlFor="paymentQR" className="text-[12px] text-gray-600 md:text-base">Payment QR Code</label>
-                  <select
-                    value={selectedPaymentQrFileId}
-                    onChange={(e) => {
-                      const nextFileId = e.target.value;
-                      const selectedFile = availablePaymentQrFiles.find((file) => file.id === nextFileId);
-
-                      setSelectedPaymentQrFileId(nextFileId);
-                      setPaymentQrFile(null);
-                      setPaymentQrPreview(selectedFile?.paymentQrDisplayUrl || null);
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-[10px] md:text-base"
-                  >
-                    <option value="">Use uploaded QR or none</option>
-                    {availablePaymentQrFiles.map((file) => (
-                      <option key={file.id} value={file.id}>
-                        {file.name}
-                      </option>
-                    ))}
-                  </select>
+                  <label htmlFor="paymentQR" className="text-[12px] text-gray-600 md:text-base">Payment QR Code</label>
                   <input
                     type="file"
                     name="paymentQR"
@@ -341,7 +301,6 @@ const Setting = () => {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setSelectedPaymentQrFileId('');
                         setPaymentQrFile(file);
                         const preview = URL.createObjectURL(file);
                         setPaymentQrPreview(preview);
@@ -557,25 +516,6 @@ const Setting = () => {
                       <label htmlFor="editPaymentQR" className="text-[12px] text-gray-600 md:text-base">
                         Payment QR Code
                       </label>
-                      <select
-                        value={editFormData.paymentQrFileId || ''}
-                        onChange={(e) => {
-                          const nextFileId = e.target.value || null;
-                          const selectedFile = availablePaymentQrFiles.find((file) => file.id === nextFileId);
-
-                          setEditFormData({ ...editFormData, paymentQrFileId: nextFileId });
-                          setEditPaymentQrFile(null);
-                          setEditPaymentQrPreview(selectedFile?.paymentQrDisplayUrl || null);
-                        }}
-                        className="p-1 border rounded"
-                      >
-                        <option value="">No linked QR</option>
-                        {availablePaymentQrFiles.map((file) => (
-                          <option key={file.id} value={file.id}>
-                            {file.name}
-                          </option>
-                        ))}
-                      </select>
                       <input
                         type="file"
                         name="editPaymentQR"
@@ -649,7 +589,7 @@ const Setting = () => {
           </>
         )}
       </div>
-      <Footer />
+      <BottomNav />
     </div>
   );
 }

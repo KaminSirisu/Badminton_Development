@@ -1,8 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
   useState,
   useEffect,
+  useCallback,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -116,15 +118,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Helper functions using user state
-  const getUserName = () => {
+  const getUserName = useCallback(() => {
     return user?.name || "No name";
-  };
+  }, [user]);
 
-  const getAdminNameAcc = () => {
+  const getAdminNameAcc = useCallback(() => {
     return user?.labels || ["No label"];
-  };
+  }, [user]);
 
-  const uploadPaymentQRToAppwrite = async (file) => {
+  const uploadPaymentQRToAppwrite = useCallback(async (file) => {
     if (!file) return null;
     try {
       const fileUpload = await storage.createFile(
@@ -137,24 +139,24 @@ export const AuthProvider = ({ children }) => {
       console.error("Error uploading QR file:", e);
       throw e;
     }
-  };
+  }, []);
 
-  const normalizePaymentAccountNumber = (value) => {
+  const normalizePaymentAccountNumber = useCallback((value) => {
     if (value === null || value === undefined) {
       return "";
     }
 
     return String(value).trim();
-  };
+  }, []);
 
-  const resolveStorageUrl = (value) => {
+  const resolveStorageUrl = useCallback((value) => {
     if (!value) return null;
     if (typeof value === "string") return value;
     if (typeof value.href === "string") return value.href;
     return String(value);
-  };
+  }, []);
 
-  const getPaymentQrUrls = (fileId) => {
+  const getPaymentQrUrls = useCallback((fileId) => {
     if (!fileId) {
       return {
         paymentQrFileId: null,
@@ -172,9 +174,9 @@ export const AuthProvider = ({ children }) => {
       paymentQrDownloadUrl: resolveStorageUrl(storage.getFileDownload(SLIP_STORAGE_ID, normalizedFileId)),
       paymentQrDisplayUrl: resolveStorageUrl(storage.getFileView(SLIP_STORAGE_ID, normalizedFileId)),
     };
-  };
+  }, [resolveStorageUrl]);
 
-  const mapClubDocument = (doc) => ({
+  const mapClubDocument = useCallback((doc) => ({
     ...getPaymentQrUrls(doc.paymentQrFileId),
     id: doc.$id,
     clubName: doc.name,
@@ -186,9 +188,9 @@ export const AuthProvider = ({ children }) => {
     paymentBank: doc.paymentBank || "",
     paymentAccountName: doc.paymentAccountName || "",
     paymentAccountNumber: doc.paymentAccountNumber || "",
-  });
+  }), [getPaymentQrUrls]);
 
-  const getAvailablePaymentQrFiles = async () => {
+  const getAvailablePaymentQrFiles = useCallback(async () => {
     try {
       const response = await storage.listFiles(SLIP_STORAGE_ID);
 
@@ -203,7 +205,7 @@ export const AuthProvider = ({ children }) => {
       toast.error("Failed to load payment QR files.");
       return [];
     }
-  };
+  }, [getPaymentQrUrls]);
 
   const createClubs = async (userInfo) => {
     setLoading(true);
@@ -240,7 +242,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const getClubData = async () => {
+  const getClubData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await databases.listDocuments(DATABASE_ID, CLUBS_COLLECTION_ID);
@@ -252,9 +254,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }
+  }, [mapClubDocument]);
 
-  const getClubById = async (clubId) => {
+  const getClubById = useCallback(async (clubId) => {
     try {
       const doc = await databases.getDocument(
         DATABASE_ID,
@@ -267,7 +269,7 @@ export const AuthProvider = ({ children }) => {
       console.error("Failed to fetch club by id:", e);
       return null;
     }
-  };
+  }, [mapClubDocument]);
 
   const updateClub = async (clubId, updatedData) => {
     setLoading(true);
@@ -348,7 +350,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const getPlayers = async () => {
+  const getPlayers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await databases.listDocuments(DATABASE_ID, PLAYERS_COLLECTION_ID);
@@ -366,7 +368,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const updatedPlayers = async (playerId, updatedData) => {
     setLoading(true);
@@ -507,7 +509,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const getMatches = async () => {
+  const getMatches = useCallback(async () => {
     try {
       const response = await databases.listDocuments(
         DATABASE_ID,
@@ -528,9 +530,9 @@ export const AuthProvider = ({ children }) => {
       console.error("Failed to fetch matches:", e);
       throw e;
     }
-  };
+  }, []);
 
-  const getDashboardMatchesByClubId = async (clubId) => {
+  const getDashboardMatchesByClubId = useCallback(async (clubId) => {
     try {
       const response = await databases.listDocuments(
         DATABASE_ID,
@@ -556,9 +558,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Failed to fetch dashboard matches:', e);
       return [];
     }
-  };
+  }, []);
 
-  const subscribeToDashboardMatches = (clubId, onEvent) => {
+  const subscribeToDashboardMatches = useCallback((clubId, onEvent) => {
     if (!clubId || typeof onEvent !== 'function') {
       return () => {};
     }
@@ -598,7 +600,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
     };
-  };
+  }, []);
 
   const queueDashboardMatch = async ({ players, court, clubId }) => {
     try {
@@ -747,7 +749,7 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-  const getUserFileId = async () => {
+  const getUserFileId = useCallback(async () => {
     try {
       const response = await databases.listDocuments(
         DATABASE_ID,
@@ -763,7 +765,7 @@ export const AuthProvider = ({ children }) => {
       console.error("Error fetching user file data:", e);
       return [];
     }
-  }
+  }, []);
 
   const getUploadedSlipsByUser = async (userId) => {
     try {
@@ -789,15 +791,15 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const getPreviewUrlsFromFileIds = (fileIds) => {
+  const getPreviewUrlsFromFileIds = useCallback((fileIds) => {
     return fileIds.map(fileId => ({
       getUserFileId,
       fileId,
       previewUrl: storage.getFileDownload(SLIP_STORAGE_ID, fileId),
     }));
-  };
+  }, [getUserFileId]);
 
-  const getPreviewUrlsFromDocs = (docs) => {
+  const getPreviewUrlsFromDocs = useCallback((docs) => {
     return docs.map(doc => ({
       user: doc.user,
       timestamp: doc.timestamp,
@@ -805,7 +807,7 @@ export const AuthProvider = ({ children }) => {
       fileId: doc.fileId,
       previewUrl: storage.getFileDownload(SLIP_STORAGE_ID, doc.fileId)
     }));
-  };
+  }, []);
 
   const updateUserName = async (newName) => {
     if (!newName) throw new Error("Name is required");
@@ -822,10 +824,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const userData = await account.get();  // or your API call to get current user info
     setUser(userData);
-  };
+  }, []);
 
   
   // Context value

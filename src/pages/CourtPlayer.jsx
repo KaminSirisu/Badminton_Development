@@ -1,14 +1,15 @@
 import { Link, useParams } from "react-router-dom"
 import Navbar from "../component/Navbar";
-import Footer from "../component/Footer.jsx";
+import BottomNav from '../component/BottomNav';
 import { useAuth } from '../utils/AuthContext';
 import { ArrowLeft, History, Plus, Users, X, Filter, Clock, Radio } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from 'react-hot-toast';
 import tennisCourt from '../assets/tennis-court.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 
+const MotionDiv = motion.div;
 
 
 const CourtPlayer = ({ checkedPlayers }) => {
@@ -18,15 +19,10 @@ const CourtPlayer = ({ checkedPlayers }) => {
 
   const [suggestedMatch, setSuggestedMatch] = useState(null);
   const [matches, setMatches] = useState([]);
-  const [completedMatches, setCompletedMatches] = useState([]);
-  const [completedDuos, setCompletedDuos] = useState([]);
   const [skillFilters, setSkillFilters] = useState({});
   const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSuggest, setShowSuggest] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [showAlert, setShowAlert] = useState(false);
   const [matchesHistory, setMatchesHistory] = useState([]);
 
   const skillLevels = ['All', 'VB', 'BG', 'N-', 'N', 'S', 'P'];
@@ -152,22 +148,19 @@ const CourtPlayer = ({ checkedPlayers }) => {
     );
   };
 
-  const fetchPlayers = async () => {
-    setLoading(true);
+  const fetchPlayers = useCallback(async () => {
     try {
       const allPlayers = await getPlayers();
       const filtered = allPlayers.filter(player => player.club.includes(id));
       setPlayers(filtered);
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [getPlayers, id]);
 
   useEffect(() => {
     fetchPlayers();
-  }, [id]);
+  }, [fetchPlayers]);
 
 
   // Load matches from localStorage on mount
@@ -188,14 +181,14 @@ const CourtPlayer = ({ checkedPlayers }) => {
   }, [matches]);
 
 
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     const matches = await getMatches();
     setMatchesHistory(matches);
-  }
+  }, [getMatches]);
 
   useEffect(() => {
     fetchMatches();
-  }, []);
+  }, [fetchMatches]);
 
   const handleSubmit = () => {
     const newMatch = {
@@ -234,7 +227,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
         m.id === matchId ? { ...m, matchStatus: 'waiting', dashboardMatchId: doc.$id } : m
       ));
       toast.success("Match is now WAITING — visible in Live Scores!");
-    } catch (e) {
+    } catch {
       toast.error("Failed to queue match");
     }
   };
@@ -248,7 +241,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
       setMatches(prev => prev.map(m =>
         m.id === matchId ? { ...m, matchStatus: 'playing', startTimestamp: Date.now() } : m
       ));
-    } catch (e) {
+    } catch {
       toast.error("Failed to start match");
     }
   };
@@ -284,7 +277,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
       Promise.all(playerIds.map(pid => incrementGamePlayed(pid)))
         .catch(e => console.error("Error incrementing gamesPlayed:", e));
 
-    } catch (e) {
+    } catch {
       toast.error("Failed to end match");
     }
   };
@@ -421,7 +414,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
         <AnimatePresence>
           <div className="gap-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mx-4 md:mx-6">
             {matches.map(match => (
-              <motion.div 
+              <MotionDiv 
                 key={match.id} 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -528,7 +521,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </select>
                         <AnimatePresence>
                           {match.team1.player1 && (
-                            <motion.div
+                            <MotionDiv
                               initial={{ opacity: 0, y: -5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
@@ -538,7 +531,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                               <SkillBadge
                                 skillLevel={match.team1.player1.skillLevel}
                               />
-                            </motion.div>
+                            </MotionDiv>
                           )}
                         </AnimatePresence>
                       </div>
@@ -558,7 +551,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </select>
                         <AnimatePresence>
                           {match.team1.player2 && (
-                            <motion.div
+                            <MotionDiv
                               initial={{ opacity: 0, y: -5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
@@ -568,7 +561,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                               <SkillBadge
                                 skillLevel={match.team1.player2.skillLevel}
                               />
-                            </motion.div>
+                            </MotionDiv>
                           )}
                         </AnimatePresence>
                       </div>
@@ -603,7 +596,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </select>
                         <AnimatePresence>
                             {match.team2.player1 && (
-                              <motion.div
+                              <MotionDiv
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -5 }}
@@ -613,7 +606,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                                 <SkillBadge
                                   skillLevel={match.team2.player1.skillLevel}
                                 />
-                              </motion.div>
+                              </MotionDiv>
                             )}
                           </AnimatePresence>
                       </div>
@@ -633,7 +626,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         </select>
                         <AnimatePresence>
                             {match.team2.player2 && (
-                              <motion.div
+                              <MotionDiv
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -5 }}
@@ -643,7 +636,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                                 <SkillBadge
                                   skillLevel={match.team2.player2.skillLevel}
                                 />
-                              </motion.div>
+                              </MotionDiv>
                             )}
                           </AnimatePresence>
                       </div>
@@ -676,7 +669,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                     </button>
                   )}
                 </div>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </AnimatePresence>
@@ -724,7 +717,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
 
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 {suggestedMatch.map((match, index) => (
-                  <motion.div
+                  <MotionDiv
                     key={match.id}
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -750,7 +743,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
                         {t('use')}
                       </button>
                     </div>
-                  </motion.div>
+                  </MotionDiv>
                 ))}
               </div>
               <button
@@ -772,10 +765,9 @@ const CourtPlayer = ({ checkedPlayers }) => {
           </div>
         )}
       </div>
-      
-      
+      <BottomNav />
     </div>
-    
+
   )
 }
 

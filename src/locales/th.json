@@ -1,4 +1,7 @@
 {
+  "home": "หน้าหลัก",
+  "profile": "โปรไฟล์",
+  "clubTitle": "ชมรมแบดมินตัน",
   "dashboard": "แดชบอร์ด",
   "players": "ผู้เล่น",
   "player": "ผู้เล่น",
@@ -96,6 +99,7 @@
   "Account Name": "ชื่อบัญชี",
   "Account Number": "หมายเลขบัญชี",
   "No payment details added for this club yet": "ยังไม่มีรายละเอียดการชำระเงินที่เพิ่มสำหรับก๊วนนี้",
+  "MatchStatus": "สถานะแมตช์",
   "Live Scores": "คะแนนสด",
   "Set as Waiting": "ตั้งเป็นรอเล่น",
   "No matches scheduled today": "ยังไม่มีการแข่งขันวันนี้",

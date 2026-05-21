@@ -1,4 +1,7 @@
 {
+  "home": "Home",
+  "profile": "Profile",
+  "clubTitle": "Badminton Club",
   "dashboard": "Dashboard",
   "players": "Players",
   "player": "Player",
@@ -95,6 +98,7 @@
   "Account Name": "Account Name",
   "Account Number": "Account Number",
   "No payment details added for this club yet": "No payment details added for this club yet",
+  "MatchStatus": "Match Status",
   "Live Scores": "Live Scores",
   "Set as Waiting": "Set as Waiting",
   "No matches scheduled today": "No matches scheduled today",

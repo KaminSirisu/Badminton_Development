@@ -14,7 +14,7 @@ const LogIn = () => {
     if(user) {
       navigate('/')
     }
-  }, [user])
+  }, [navigate, user])
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +23,7 @@ const LogIn = () => {
     
     try {
       await loginUser({email, password});
-    } catch (err) {
+    } catch {
       alert('Login failed. Please check your credentials.');
     }
   }

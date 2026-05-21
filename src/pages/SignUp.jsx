@@ -18,7 +18,7 @@ const SignUp = () => {
     { label: "At least one lowercase letter", test: /[a-z]/ },
     { label: "At least one uppercase letter", test: /[A-Z]/ },
     { label: "At least one number", test: /\d/ },
-    { label: "At least one special character (!...$)", test: /[!@#$%^&*(),.?":{}|<>_\-]/ }
+    { label: "At least one special character (!...$)", test: /[!@#$%^&*(),.?":{}|<>_-]/ }
   ];
 
   const allRulesPass = rules.every(rule => rule.test.test(password));
@@ -62,7 +62,7 @@ const SignUp = () => {
     if(user) {
       navigate('/');
     }
-  }, [user])
+  }, [navigate, user])
 
   return (
     <div className="flex justify-center items-center bg-gray-50 px-4 min-h-screen">

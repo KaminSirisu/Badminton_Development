@@ -3,8 +3,8 @@ import { Fragment } from 'react'
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 
 export default function PlayerDetailModal({ isOpen, onClose, player, pricePerGame, startPrice }) {
-  if (!player) return null;
   const { t } = useLanguage();
+  if (!player) return null;
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -55,7 +55,7 @@ export default function PlayerDetailModal({ isOpen, onClose, player, pricePerGam
                     className="inline-flex justify-center bg-blue-600 hover:bg-blue-700 px-4 py-2 border border-transparent rounded-md font-medium text-white text-sm"
                     onClick={onClose}
                   >
-                    Close
+                    {t('close')}
                   </button>
                 </div>
               </DialogPanel>

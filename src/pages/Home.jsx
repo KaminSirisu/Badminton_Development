@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../component/Navbar';
+import BottomNav from '../component/BottomNav';
 import { useAuth } from '../utils/AuthContext';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Users, Star, Edit, Trash2, CalendarClockIcon, Clipboard } from 'lucide-react';
+import { Plus, Search, Users, Edit, Trash2, CalendarClockIcon, Clipboard } from 'lucide-react';
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 import DragDropUpload from '../component/DragDropUpload.jsx';
-import Footer from '../component/Footer.jsx';
 import { toast } from 'react-hot-toast';
 
 const Home = () => {
@@ -187,7 +187,7 @@ const Home = () => {
       setShowCheckInPlayerModal(false);
       setCheckedInClubs((prev) => [...prev, selectedClub.id]);
       setCheckInTime("");
-    } catch (error) {
+    } catch {
       alert('Failed to check-in.');
     }
   };
@@ -275,14 +275,14 @@ const Home = () => {
   ];
 
   const borderColors = [
-    'border-t-blue-600',
-    'border-t-green-600',
-    'border-t-yellow-600',
-    'border-t-orange-600',
-    'border-t-red-600',
-    'border-t-pink-600',
-    'border-t-gray-600',
-    'border-t-indigo-600',
+    'border-blue-600',
+    'border-green-600',
+    'border-yellow-500',
+    'border-orange-500',
+    'border-red-600',
+    'border-pink-600',
+    'border-gray-600',
+    'border-indigo-600',
   ]
 
   const textColors = [
@@ -316,7 +316,7 @@ const Home = () => {
     };
     loadPlayers();
     
-  }, []);
+  }, [getPlayers]);
 
 
   useEffect(() => {
@@ -329,33 +329,34 @@ const Home = () => {
       setAdmin(admin);
     };
     fetchData();
-  }, []);
-
-  const fetchClubs = async () => {
-    const data = await getClubData();
-    setClub(data);
-  };
+  }, [getAdminNameAcc, getUserName]);
 
   useEffect(() => {
+    const fetchClubs = async () => {
+      const data = await getClubData();
+      setClub(data);
+    };
+
     fetchClubs();
-  }, [])
+  }, [getClubData])
 
 
   return (
     <div className='flex flex-col bg-neutral-100 w-full min-h-screen overflow-auto'>
       <Navbar />
-      <div className='flex-grow'>
+      <div className='flex-grow pb-24'>
         {/* Admin Site */}
         {admin.includes("admin") ? (
-          <div className='mx-5 sm:mx-20 mt-5 sm:mt-10'>
+          <div className='px-4 sm:px-8 pt-4 sm:pt-6'>
             <h1 className='head-text'>
-              {t('welcome')}, <b>{t('admin')}</b> {name}
+              {t('welcome')}, <b>{name}</b>
             </h1>
-            <h2 className='text-[12px] text-gray-500'>
+            <h2 className='text-[11px] text-gray-500 mb-4'>
               {t('manage your badminton clubs and players')}
             </h2>
+
             {/* Clubs List */}
-            <div className="gap-2 md:gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mx-2 md:mx-5 mt-5">
+            <div className="flex flex-col gap-3 mb-6">
               {club.map((club, index) => {
                 const color = borderColors[index % borderColors.length];
                 const colors = textColors[index % textColors.length];
@@ -363,51 +364,51 @@ const Home = () => {
                 return (
                   <div
                     key={club.id}
-                    className={`relative bg-white p-4 rounded-xl shadow-md px-3 py-3 md:px-4 md:py-4 ${color} border-t-4 flex flex-col justify-between`}
+                    className={`bg-white px-4 py-4 rounded-2xl shadow-sm border-2 ${color} flex flex-col gap-2`}
                   >
-                    {/* Top Row: Club name & Buttons */}
-                    <div className="flex justify-between items-start">
-                      <h3 className={`font-bold text-base md:text-lg ${colors}`}>{club.clubName}</h3>
-                      <div className="top-4 right-3 absolute flex flex-col items-end gap-2">
-                        {/* Matchmaking Button */}
+                    {/* Top Row: Info + Action Buttons */}
+                    <div className="flex justify-between items-start gap-3">
+                      {/* Left: Club info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-bold text-base md:text-lg ${colors} leading-tight`}>{club.clubName}</h3>
+                        <p className="text-gray-500 text-sm mt-0.5">
+                          {club.playingDay.split(',').map(day => t(day.trim())).join(', ')}
+                        </p>
+                        <p className="text-gray-500 text-sm">{club.startTime}–{club.endTime}</p>
+                      </div>
+                      {/* Right: Buttons stacked */}
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <Link
                           to={`/matchmaking/${club.id}`}
-                          className={`${colorss} hover:bg-gray-200 shadow-md px-3 py-2 rounded-2xl font-semibold text-white text-xs md:text-sm transition`}
+                          className={`${colorss} px-4 py-2 rounded-xl font-semibold text-white text-sm shadow-sm hover:opacity-90 transition`}
                         >
                           {t('matchmaking')}
                         </Link>
-                        {/* Check-in Button */}
-                        <button
-                          onClick={() => handleOpenModal(club)}
-                          className="bg-neutral-100 shadow-md px-3 py-1 border rounded-2xl font-medium text-gray-600 text-xs md:text-sm transition"
+                        <Link
+                          to={`/dashboard/${club.id}`}
+                          className="flex items-center justify-center gap-1.5 border border-red-100 bg-red-50 shadow-[0_0_18px_rgba(239,68,68,0.18)] px-4 py-1.5 rounded-xl font-medium text-red-600 text-sm hover:bg-red-100 transition text-center"
                         >
-                          {t('checked-In')}
-                        </button>
+                          <span className="relative inline-flex items-center justify-center w-3 h-3">
+                            <span className="absolute inline-flex bg-red-400 opacity-75 rounded-full w-full h-full animate-ping" />
+                            <span className="relative inline-flex bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] rounded-full w-2 h-2" />
+                          </span>
+                          {t('MatchStatus')}
+                        </Link>
                       </div>
                     </div>
-                    {/* Days and Time */}
-                    <div className="mt-1 text-gray-500 text-sm md:text-base">
-                      <div>
-                        {club.playingDay
-                          .split(',')
-                          .map(day => t(day.trim()))
-                          .join(', ')}
+                    {/* Bottom: Member count + check-in */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-gray-600">
+                        <Users className="mr-1 w-4 h-4" />
+                        <span className="text-sm">{getClubMemberCount(club.id)}</span>
                       </div>
-                      <div>{club.startTime}-{club.endTime}</div>
-                    </div>
-                    {/* Bottom: Member count + Live Scores */}
-                    <div className="flex flex-col gap-2 mt-auto pt-1 md:pt-3">
-                      <div className="flex items-center">
-                        <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
-                        <span className="text-md">{getClubMemberCount(club.id)}</span>
-                      </div>
-                      <Link
-                        to={`/dashboard/${club.id}`}
-                        className="flex items-center justify-center gap-1.5 w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white rounded-lg py-2 text-xs sm:text-sm font-semibold transition-colors"
+                      <button
+                        onClick={() => handleOpenModal(club)}
+                        className="flex items-center gap-1 text-gray-400 hover:text-gray-600 text-xs transition"
                       >
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-                        {t('Live Scores')}
-                      </Link>
+                        <CalendarClockIcon size={12} />
+                        <span>{t('checked-In')}</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -482,48 +483,49 @@ const Home = () => {
               </div>
             )}
 
-            {/* Filter Players */}
-            <div className=''>
-              <div className="flex md:flex-row flex-col justify-between md:justify-center items-center gap-4 mt-5 md:mt-10 mb-6">
-                <div className="flex gap-2 md:gap-4">
-                  <div className="relative w-[220px] lg:w-[260px]">
-                    <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 transform" />
-                    <input
-                      type="text"
-                      placeholder={t('search players...')}
-                      className="py-1 pr-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full placeholder:text-sm placeholder:md:text-base"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <select 
-                    className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"
-                    value={skillFilter}
-                    onChange={(e) => setSkillFilter(e.target.value)}
-                  >
-                    <option value="All">{t('all')}</option>
-                    <option value="VB">VB</option>
-                    <option value="BG">BG</option>
-                    <option value="N-">N-</option>
-                    <option value="N">N</option>
-                    <option value="S">S</option>
-                    <option value="P">P</option>
-                  </select>
-                </div>
-                <div className='flex flex-row items-center gap-3'>
-                  <span className="text-gray-600 text-xs md:text-sm">
-                    {filteredPlayers.length} of {players.length} {t('players')}
-                  </span>
-                  <button
-                    onClick={() => setShowAddPlayerModal(true)}
-                    className="flex justify-end items-center gap-2 bg-blue-500 hover:bg-blue-600 px-3 py-2 rounded-lg text-white transition-colors"
-                  >
-                    <Plus className="w-3 md:w-4 h-3 md:h-4" />
-                    <h1 className='text-sm md:text-base'>{t('add player')}</h1>
-                  </button>
-                </div>
-              </div>
+            {/* Player Section Header */}
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-base text-gray-800">{t('players')}</h2>
+              <button
+                onClick={() => setShowAddPlayerModal(true)}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-xl text-white text-sm font-semibold transition-colors shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {t('add player')}
+              </button>
             </div>
+
+            {/* Search + Filter */}
+            <div className="flex gap-2 mb-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t('search players...')}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <select
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={skillFilter}
+                onChange={(e) => setSkillFilter(e.target.value)}
+              >
+                <option value="All">{t('all')}</option>
+                <option value="VB">VB</option>
+                <option value="BG">BG</option>
+                <option value="N-">N-</option>
+                <option value="N">N</option>
+                <option value="S">S</option>
+                <option value="P">P</option>
+              </select>
+            </div>
+
+            {/* Player count */}
+            <p className="text-sm text-gray-500 mb-2">
+              {filteredPlayers.length} of {players.length} {t('players')}
+            </p>
 
             {/* Add Player Modal */}
             {showAddPlayerModal && (
@@ -604,88 +606,63 @@ const Home = () => {
               </div>
             )}
 
-            {/* Players Table */}
-            <div className="bg-white shadow-md mx-auto my-8 px-0 border border-gray-300 rounded-lg max-w-6xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr className='rounded-t-lg'>
-                      <th className="px-6 py-3 font-medium text-gray-600 text-xs text-left uppercase tracking-wider">
-                        {t('player')}
-                      </th>
-                      <th className="px-6 py-3 font-medium text-gray-600 text-xs text-left uppercase tracking-wider">
-                        {t('skill level')}
-                      </th>
-                      {club.map(club => (
-                        <th key={club.id} className="px-6 py-3 font-medium text-gray-600 text-xs text-center uppercase tracking-wider">
-                          {club.clubName}
-                        </th>
-                      ))}
-                      <th className="px-6 py-3 font-medium text-gray-600 text-xs text-center uppercase tracking-wider">
-                        {t('actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPlayers.map(player => (
-                      <tr key={player.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div>
-                              <div className="font-medium text-gray-900 text-sm">{player.name}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSkillLevelColor(player.skillLevel)}`}>
-                            {player.skillLevel}
-                          </span>
-                        </td>
-                        {club.map((club, index) => {
-                          const color = bgColors[index % bgColors.length];
-                          return (
-                            <td key={club.id} className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex justify-center">
-                                <IOSToggle
-                                  isOn={player.club.includes(club.id)}
-                                  onToggle={() => togglePlayerClub(player.id, club.id)}
-                                  clubColor={color}
-                                />
-                              </div>
-                            </td>
-                          );
-                        })}
-                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                          <div className="flex justify-center gap-2">
-                            <button 
-                              className="text-blue-500 hover:text-blue-700"
-                              onClick={() => {
-                                setEditingPlayer(player); 
-                                setShowUpdatePlayerModal(true)
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button 
-                              className="text-red-500 hover:text-red-700"
-                              onClick={async () => {
-                                if (window.confirm(t("Are you sure you want to delete this player?"))) {
-                                  await deletePlayer(player.id, async () => {
-                                    const updated = await getPlayers();
-                                    setPlayers(updated);
-                                  });
-                                }
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* Players List */}
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              {filteredPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`flex items-center gap-3 px-4 py-3 ${
+                    index < filteredPlayers.length - 1 ? 'border-b border-gray-100' : ''
+                  }`}
+                >
+                  {/* Skill Badge */}
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${getSkillLevelColor(player.skillLevel)}`}
+                  >
+                    {player.skillLevel}
+                  </div>
+                  {/* Name */}
+                  <div className="flex-1 font-medium text-gray-800 text-sm truncate">{player.name}</div>
+                  {/* Club Toggles */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {club.map((clubItem, cIndex) => {
+                      const color = bgColors[cIndex % bgColors.length];
+                      return (
+                        <IOSToggle
+                          key={clubItem.id}
+                          isOn={player.club.includes(clubItem.id)}
+                          onToggle={() => togglePlayerClub(player.id, clubItem.id)}
+                          clubColor={color}
+                        />
+                      );
+                    })}
+                  </div>
+                  {/* Edit */}
+                  <button
+                    className="text-gray-400 hover:text-blue-500 p-1 transition-colors flex-shrink-0"
+                    onClick={() => { setEditingPlayer(player); setShowUpdatePlayerModal(true); }}
+                  >
+                    ✏️
+                  </button>
+                  {/* Delete */}
+                  <button
+                    className="text-gray-400 hover:text-red-500 p-1 transition-colors flex-shrink-0"
+                    onClick={async () => {
+                      if (window.confirm(t("Are you sure you want to delete this player?"))) {
+                        await deletePlayer(player.id, async () => {
+                          const updated = await getPlayers();
+                          setPlayers(updated);
+                        });
+                      }
+                    }}
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+              {filteredPlayers.length === 0 && (
+                <div className="py-10 text-center text-gray-400 text-sm">{t('No players found')}</div>
+              )}
             </div>
 
             {/* Update Player Modal */}
@@ -740,12 +717,12 @@ const Home = () => {
           </div>
         ) : (
           // User Site
-          <div className='mx-5 sm:mx-20 mt-5 sm:mt-10'>
-            <h1 className='head-text'>{t('welcome')}, {name}</h1>
-            <h2 className='text-[11px] text-gray-500'>{t('Check in the game — your club is waiting.')}</h2>
+          <div className='px-4 sm:px-8 pt-4 sm:pt-6'>
+            <h1 className='head-text'>{t('welcome')}, <b>{name}</b></h1>
+            <h2 className='text-[11px] text-gray-500 mb-4'>{t('Check in the game — your club is waiting.')}</h2>
 
             {/* Clubs List */}
-            <div className="gap-4 md:gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mx-2 md:mx-5 mt-5">
+            <div className="flex flex-col gap-3">
               {club.map((club, index) => {
                 const color = borderColors[index % borderColors.length];
                 const colors = textColors[index % textColors.length];
@@ -753,58 +730,44 @@ const Home = () => {
                 return (
                   <div
                     key={club.id}
-                    className={`relative bg-white p-4 rounded-xl shadow-md px-3 py-3 md:px-4 md:py-4 ${color} border-t-4 flex flex-col justify-between`}
+                    className={`bg-white px-4 py-4 rounded-2xl shadow-sm border-2 ${color} flex flex-col gap-2`}
                   >
-                    {/* Top Row: Club name & Buttons */}
-                    <div className="flex justify-between items-start">
-                      <h3 className={`font-bold text-base md:text-lg ${colors}`}>{club.clubName}</h3>
-                      <div className='top-4 right-3 absolute flex flex-col items-end gap-2'>
+                    {/* Top Row: Info + Action Buttons */}
+                    <div className="flex justify-between items-start gap-3">
+                      {/* Left: Club info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`font-bold text-base md:text-lg ${colors} leading-tight`}>{club.clubName}</h3>
+                        <p className="text-gray-500 text-sm mt-0.5">
+                          {club.playingDay.split(',').map(day => t(day.trim())).join(', ')}
+                        </p>
+                        <p className="text-gray-500 text-sm">{club.startTime}–{club.endTime}</p>
+                      </div>
+                      {/* Right: Buttons stacked */}
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         {checkedInClubs.includes(club.id) ? (
-                          <span className={`font-semibold text-gray-600 text-sm md:text-base`}>✅ {t('Checked In')}</span>
+                          <span className="font-semibold text-green-600 text-sm">✅ {t('Checked In')}</span>
                         ) : (
                           <button
-                            onClick={() => {
-                              setSelectedClub(club);
-                              setShowCheckInPlayerModal(true);
-                            }}
-                            className={`${colorss} drop-shadow-md px-3 py-2 rounded-xl flex flex-row items-center gap-2`}
+                            onClick={() => { setSelectedClub(club); setShowCheckInPlayerModal(true); }}
+                            className={`${colorss} px-4 py-2 rounded-xl font-semibold text-white text-sm shadow-sm flex items-center gap-1.5 hover:opacity-90 transition`}
                           >
-                            <CalendarClockIcon className="text-white" size={12}/>
-                            <h1 className="font-light text-[12px] text-white md:text-sm">{t('check-In')}</h1>
+                            <CalendarClockIcon size={13} />
+                            {t('check-In')}
                           </button>
                         )}
                         <button
-                          onClick={() => handleOpenUploadSlipModal(club)} 
-                          className="flex flex-row items-center gap-2 bg-neutral-100 drop-shadow-md px-3 py-2 rounded-xl"
+                          onClick={() => handleOpenUploadSlipModal(club)}
+                          className="border border-gray-200 bg-white px-4 py-1.5 rounded-xl font-medium text-gray-600 text-sm flex items-center gap-1.5 hover:bg-gray-50 transition"
                         >
-                          <Clipboard size={12}/>
-                          <h1 className="font-semibold text-[12px] text-gray-600 md:text-sm">{t('money slip')}</h1>
+                          <Clipboard size={13} />
+                          {t('money slip')}
                         </button>
                       </div>
                     </div>
-                    {/* Days and Time */}
-                    <div className="mt-1 text-gray-500 text-sm md:text-base">
-                      <div>
-                        {club.playingDay
-                          .split(',')
-                          .map(day => t(day.trim()))
-                          .join(', ')}
-                      </div>
-                      <div>{club.startTime}-{club.endTime}</div>
-                    </div>
-                    {/* Bottom: Member count + Live Scores */}
-                    <div className="flex flex-col gap-2 mt-auto pt-1 md:pt-3">
-                      <div className="flex items-center">
-                        <Users className="mr-1 w-4 md:w-5 h-4 md:h-5" />
-                        <span className="text-md">{getClubMemberCount(club.id)}</span>
-                      </div>
-                      <Link
-                        to={`/dashboard/${club.id}`}
-                        className="flex items-center justify-center gap-1.5 w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white rounded-lg py-2 text-xs sm:text-sm font-semibold transition-colors"
-                      >
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-                        {t('Live Scores')}
-                      </Link>
+                    {/* Bottom: Member count */}
+                    <div className="flex items-center text-gray-600">
+                      <Users className="mr-1 w-4 h-4" />
+                      <span className="text-sm">{getClubMemberCount(club.id)}</span>
                     </div>
                   </div>
                 );
@@ -936,7 +899,7 @@ const Home = () => {
           </div>
         )}
       </div>
-      <Footer />
+      <BottomNav />
     </div>
   )
 

@@ -37,6 +37,7 @@ const App = () => {
               <Route path="/setting" element={<Setting />} />
               <Route path="/matchmaking/:id" element={<CourtPlayer checkedPlayers={checkedPlayers}/>} />
               <Route path="/summary/:id" element={<Summary checkedPlayers={checkedPlayers} onCheckboxToggle={handleCheckboxToggle}/>} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/:id" element={<Dashboard />} />
             </Route>
           

@@ -3,8 +3,6 @@ import { LogOut } from "lucide-react";
 import { useAuth } from '../utils/AuthContext';
 import { Link, useLocation } from "react-router-dom";
 import PreviewFilesList from './PreviewFilesList.jsx';
-import menu from "../assets/menu.svg"; // your hamburger icon
-import close from "../assets/close.svg"; // your close icon
 import Badminton from "../assets/badminton.png";
 import { useLanguage } from '../utils/LanguageProvider.jsx';
 
@@ -15,11 +13,8 @@ const Navbar = () => {
   const [previewFiles, setPreviewFiles] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
-  const { getAdminNameAcc, getUserName, logoutUser, getUserFileId, getPreviewUrlsFromDocs }  = useAuth();
+  const { getUserName, logoutUser, getUserFileId, getPreviewUrlsFromDocs }  = useAuth();
   const [toggle, setToggle] = useState(false);
-  const [active, setActive] = useState("");
-  const [scrolled, setScrolled] = useState(false);
-  const [admin, setAdmin] = useState([]);
 
   const location = useLocation();
   let summaryLink = null;
@@ -29,7 +24,6 @@ const Navbar = () => {
     const id = location.pathname.split("/")[2]; // grab '12345' from '/matchmaking/12345'
     summaryLink = `/summary/${id}`;
   } else if (location.pathname.startsWith("/summary/")) {
-    const id = location.pathname.split("/")[2]; // grab '12345' from '/matchmaking/12345'
     showMoneySlipButton = true;
   }
 
@@ -43,17 +37,15 @@ const Navbar = () => {
   //   fetchUsers();
   // }, []);
 
-  const loadPreviews = async () => {
-    const fileData = await getUserFileId(); // returns [{ user, fileId, ... }, ...]
-    const previewFiles = getPreviewUrlsFromDocs(fileData);
-
-    setPreviewFiles(previewFiles);
-    // Output: [{ fileId: 'abc123', previewUrl: 'https://...' }, ...]
-  };
-
   useEffect(() => {
+    const loadPreviews = async () => {
+      const fileData = await getUserFileId(); // returns [{ user, fileId, ... }, ...]
+      const previewFiles = getPreviewUrlsFromDocs(fileData);
+      setPreviewFiles(previewFiles);
+    };
+
     loadPreviews();
-  }, [])
+  }, [getPreviewUrlsFromDocs, getUserFileId])
   
 
   // useEffect(() => {
@@ -66,22 +58,16 @@ const Navbar = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [name, admin] = await Promise.all([
-        getUserName(),
-        getAdminNameAcc()
-      ]);
+      const [name] = await Promise.all([getUserName()]);
       setName(name);
-      setAdmin(admin);
     };
     fetchData();
-  }, []);
+  }, [getUserName]);
 
   return (
   
     <nav
-      className={` rounded-xl w-full flex items-center py-3 sticky top-0 z-20 bg-gray-50 border border-gray-300 shadow-md transition-shadow duration-300 ${
-        scrolled ? "shadow-md" : ""
-      }`}
+      className="rounded-xl w-full flex items-center py-3 sticky top-0 z-20 bg-gray-50 border border-gray-300 shadow-md transition-shadow duration-300"
     >
       <div className="flex justify-between items-center mx-auto px-4 md:px-10 w-full max-w-7xl">
         {/* Left: Club Text */}
@@ -89,12 +75,11 @@ const Navbar = () => {
           to="/"
           className="flex items-center gap-2"
           onClick={() => {
-            setActive("");
             window.scrollTo(0, 0);
           }}
         >
           <p className="font-semibold text-[14px] text-black md:text-[22px]">
-            Badminton Club
+            {t('clubTitle')}
           </p>
           <img src={Badminton} alt="Badminton" className="self-center w-6 h-6" />
         </Link>
@@ -152,14 +137,18 @@ const Navbar = () => {
         </div>
 
         
-        {/* Mobile Hamburger */}
+        {/* Mobile — username + language badge */}
         <div className="md:hidden flex justify-end items-center">
-          <img
-            src={toggle ? close : menu}
-            alt="menu"
-            className="invert w-[20px] md:w-[28px] h-[20px] md:h-[28px] object-contain cursor-pointer"
+          <button
             onClick={() => setToggle(!toggle)}
-          />
+            className="flex items-center gap-2 focus:outline-none"
+            aria-label="Open menu"
+          >
+            <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">{name}</span>
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+              {language.toUpperCase()}
+            </div>
+          </button>
           <div
             className={`${
               !toggle ? "hidden" : "flex"
@@ -231,7 +220,7 @@ const Navbar = () => {
                     onClick={() => setShowModal(false)}
                     className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white"
                   >
-                    Close
+                    {t('close')}
                   </button>
                 </div>
               </div>

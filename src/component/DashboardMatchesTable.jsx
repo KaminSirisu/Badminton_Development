@@ -25,6 +25,8 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
   const { teamA: teamAWins, teamB: teamBWins } = computeSetScore(sets);
   const teamAPlayers = match.players.slice(0, 2);
   const teamBPlayers = match.players.slice(2, 4);
+  const teamALabel = teamAPlayers.length > 0 ? teamAPlayers.join(' / ') : 'TBD';
+  const teamBLabel = teamBPlayers.length > 0 ? teamBPlayers.join(' / ') : 'TBD';
 
   const isWaiting = match.status === 'WAITING';
   const isPlaying = match.status === 'PLAYING';
@@ -44,36 +46,39 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
 
   return (
     <div
-      className={`grid grid-cols-[90px_1fr_90px] sm:grid-cols-[150px_1fr_170px] px-3 sm:px-6 py-1.5 sm:py-2 gap-2 sm:gap-4 items-center ${
+      className={`grid grid-cols-[84px_1fr_84px] sm:grid-cols-[138px_1fr_156px] px-3 sm:px-5 py-0.5 sm:py-1.5 gap-1.5 sm:gap-3 items-center ${
         !isLast ? 'border-b border-gray-100' : ''
       }`}
     >
       <div className="flex flex-col items-center text-center">
         {isWaiting ? (
           <>
-            <div className="font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
+            <div className="font-semibold text-[8px] text-gray-400 sm:text-[9px] uppercase tracking-wider">
               UPCOMING
             </div>
             {/* <div className="mt-0.5 font-bold text-gray-800 text-sm sm:text-xl leading-tight">
               TBD
             </div> */}
-            <span className="bg-gray-200 mt-1.5 px-2 sm:px-2.5 py-0.5 rounded-full font-semibold text-[9px] text-gray-600 sm:text-[10px] uppercase tracking-wide">
+            <span className="mt-1 rounded-full bg-gray-200 px-1.5 sm:px-2 py-0.5 font-semibold text-[8px] text-gray-600 sm:text-[9px] uppercase tracking-wide">
               WAITING
             </span>
           </>
         ) : (
           <>
             {isPlaying && (
-              <div className="flex items-center gap-1 font-bold text-[10px] text-red-500 sm:text-xs">
-                <span className="inline-block bg-red-500 rounded-full w-1.5 h-1.5 animate-pulse" />
+              <div className="flex items-center gap-1.5 bg-red-50 shadow-[0_0_18px_rgba(239,68,68,0.18)] mt-0.5 px-1.5 py-0.5 rounded-full font-bold text-[9px] text-red-500 sm:text-[10px]">
+                <span className="relative inline-flex items-center justify-center w-2.5 h-2.5 sm:w-3 sm:h-3">
+                  <span className="absolute inline-flex bg-red-400 opacity-75 rounded-full w-full h-full animate-ping" />
+                  <span className="relative inline-flex bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] rounded-full w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                </span>
                 LIVE
               </div>
             )}
-            <div className="font-extrabold text-gray-800 text-2xl sm:text-4xl leading-none">
+            <div className="flex text-center font-extrabold text-gray-800 text-lg sm:text-2xl leading-none">
               {match.totalTime ?? '-'}&apos;
             </div>
             <span
-              className={`mt-1.5 text-[9px] sm:text-[10px] px-2 sm:px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wide ${
+              className={`mt-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-semibold uppercase tracking-wide ${
                 isPlaying ? 'bg-red-100 text-red-600' : 'bg-gray-800 text-white'
               }`}
             >
@@ -83,32 +88,23 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
         )}
       </div>
 
-      <div className='flex flex-row justify-center'>
-        <div className="mb-2">
-          <div className="mb-0.5 font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start">
+        <div className="min-w-0 justify-self-start text-left">
+          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[9px] uppercase tracking-wider">
             TEAM A
           </div>
-          <div className="flex items-start gap-1.5">
-            <div>
-              {teamAPlayers.length > 0 ? (
-                teamAPlayers.map((player, index) => (
-                  <div
-                    key={index}
-                    className={`text-xs sm:text-sm leading-snug ${
-                      teamAWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
-                    }`}
-                  >
-                    {player}
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-400 text-xs sm:text-sm italic">TBD</div>
-              )}
+          <div className="flex items-start gap-1">
+            <div
+              className={`min-w-0 text-[10px] sm:text-[11px] leading-snug truncate ${
+                teamAWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
+              } ${teamALabel === 'TBD' ? 'italic text-gray-400' : ''}`}
+            >
+              {teamALabel}
             </div>
             {teamAWon && (
               <div className="flex flex-shrink-0 items-center gap-1 mt-0.5">
-                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />
-                <span className="bg-green-100 px-1.5 py-0.5 rounded-full font-semibold text-[10px] text-green-600 sm:text-xs leading-tight">
+                <Trophy className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-yellow-500" />
+                <span className="bg-green-100 px-1 py-0.5 rounded-full font-semibold text-[9px] text-green-600 sm:text-[10px] leading-tight">
                   Won
                 </span>
               </div>
@@ -116,33 +112,24 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
           </div>
         </div>
 
-        <div className="mx-5 border-gray-200 border-l border-dashed" />
+        <div className="mx-2 sm:mx-3 self-stretch border-gray-200 border-l border-dashed" />
 
-        <div>
-          <div className="mb-0.5 font-semibold text-[9px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
+        <div className="min-w-0 justify-self-start text-left">
+          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[9px] uppercase tracking-wider">
             TEAM B
           </div>
-          <div className="flex items-start gap-1.5">
-            <div>
-              {teamBPlayers.length > 0 ? (
-                teamBPlayers.map((player, index) => (
-                  <div
-                    key={index}
-                    className={`text-xs sm:text-sm leading-snug ${
-                      teamBWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
-                    }`}
-                  >
-                    {player}
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-400 text-xs sm:text-sm italic">TBD</div>
-              )}
+          <div className="flex items-start gap-1">
+            <div
+              className={`min-w-0 text-[10px] sm:text-[11px] leading-snug truncate ${
+                teamBWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
+              } ${teamBLabel === 'TBD' ? 'italic text-gray-400' : ''}`}
+            >
+              {teamBLabel}
             </div>
             {teamBWon && (
               <div className="flex flex-shrink-0 items-center gap-1 mt-0.5">
-                <Trophy className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />
-                <span className="bg-green-100 px-1.5 py-0.5 rounded-full font-semibold text-[10px] text-green-600 sm:text-xs leading-tight">
+                <Trophy className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-yellow-500" />
+                <span className="bg-green-100 px-1 py-0.5 rounded-full font-semibold text-[9px] text-green-600 sm:text-[10px] leading-tight">
                   Won
                 </span>
               </div>
@@ -162,21 +149,21 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
                 : 'text-gray-300 hover:text-blue-400 hover:bg-blue-50'
             }`}
           >
-            <Bell className={`w-5 h-5 ${isNotified ? 'fill-blue-400' : ''}`} />
+            <Bell className={`w-4 h-4 ${isNotified ? 'fill-blue-400' : ''}`} />
           </button>
         ) : (
           <>
-            <div className="font-extrabold text-gray-800 text-2xl sm:text-4xl leading-none tracking-tight">
+            <div className="font-extrabold text-gray-800 text-xl sm:text-3xl leading-none tracking-tight">
               {teamAWins}&nbsp;:&nbsp;{teamBWins}
             </div>
             {sets.length > 0 && (
-              <div className="flex flex-wrap justify-end gap-1 mt-1.5">
+              <div className="flex flex-wrap justify-end gap-1 mt-1">
                 {sets.map((set, index) => {
                   const isActive = isPlaying && index === sets.length - 1;
                   return (
                     <span
                       key={index}
-                      className={`text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded font-medium leading-tight ${
+                      className={`text-[9px] sm:text-[10px] px-1 py-0.5 rounded font-medium leading-tight ${
                         isActive
                           ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
                           : 'text-gray-400'
