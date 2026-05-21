@@ -623,11 +623,65 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const startDashboardMatch = async (dashboardMatchId) => {
-    try {
-      await databases.updateDocument(DATABASE_ID, MATCHES_COLLECTION_ID, dashboardMatchId, {
+  const startDashboardMatch = async (dashboardMatchId, fallbackData = null) => {
+    const startById = async (id) => {
+      await databases.updateDocument(DATABASE_ID, MATCHES_COLLECTION_ID, id, {
         status: 'PLAYING',
       });
+      return id;
+    };
+
+    try {
+      if (dashboardMatchId) {
+        return await startById(dashboardMatchId);
+      }
+
+      if (!fallbackData) {
+        throw new Error('No dashboard match id or fallback data provided.');
+      }
+    } catch (e) {
+      if (e?.code !== 404 || !fallbackData) {
+        console.error('Failed to start match:', e);
+        throw e;
+      }
+    }
+
+    try {
+      const playersKey = (fallbackData.players || []).join('|').toLowerCase();
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        MATCHES_COLLECTION_ID,
+        [
+          Query.equal('clubId', fallbackData.clubId),
+          Query.equal('court', fallbackData.court),
+          Query.equal('status', 'WAITING'),
+          Query.orderDesc('$createdAt'),
+          Query.limit(25),
+        ]
+      );
+
+      const existingDoc = response.documents.find((doc) => (
+        (doc.players || []).join('|').toLowerCase() === playersKey
+      ));
+
+      if (existingDoc) {
+        return await startById(existingDoc.$id);
+      }
+
+      const created = await databases.createDocument(
+        DATABASE_ID,
+        MATCHES_COLLECTION_ID,
+        ID.unique(),
+        {
+          players: fallbackData.players || [],
+          court: fallbackData.court,
+          clubId: fallbackData.clubId,
+          startTime: fallbackData.startTime || new Date().toISOString(),
+          status: 'PLAYING',
+        }
+      );
+
+      return created.$id;
     } catch (e) {
       console.error('Failed to start match:', e);
       throw e;

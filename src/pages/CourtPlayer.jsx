@@ -234,12 +234,30 @@ const CourtPlayer = ({ checkedPlayers }) => {
 
   const handleStartMatch = async (matchId) => {
     const match = matches.find(m => m.id === matchId);
-    if (!match?.dashboardMatchId) return;
+    if (!match) return;
+
+    const { team1, team2, courtNumber, dashboardMatchId } = match;
+    if (!courtNumber || !team1?.player1 || !team1?.player2 || !team2?.player1 || !team2?.player2) {
+      toast.error(t("Please complete the court and player selection"));
+      return;
+    }
 
     try {
-      await startDashboardMatch(match.dashboardMatchId);
+      const resolvedDashboardMatchId = await startDashboardMatch(dashboardMatchId, {
+        players: [team1.player1.name, team1.player2.name, team2.player1.name, team2.player2.name],
+        court: courtNumber,
+        clubId: id,
+        startTime: new Date().toISOString(),
+      });
       setMatches(prev => prev.map(m =>
-        m.id === matchId ? { ...m, matchStatus: 'playing', startTimestamp: Date.now() } : m
+        m.id === matchId
+          ? {
+            ...m,
+            matchStatus: 'playing',
+            dashboardMatchId: resolvedDashboardMatchId || m.dashboardMatchId,
+            startTimestamp: Date.now(),
+          }
+          : m
       ));
     } catch {
       toast.error("Failed to start match");
@@ -408,7 +426,7 @@ const CourtPlayer = ({ checkedPlayers }) => {
         </div>
         
       </div>
-      <div className="mx-auto mt-2 md:mt-4 max-w-7xl">
+      <div className="mx-auto mt-2 md:mt-4 mb-20 max-w-7xl">
         
         {/* Matches Grid */}
         <AnimatePresence>

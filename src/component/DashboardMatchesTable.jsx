@@ -59,7 +59,7 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
             {/* <div className="mt-0.5 font-bold text-gray-800 text-sm sm:text-xl leading-tight">
               TBD
             </div> */}
-            <span className="mt-1 rounded-full bg-gray-200 px-1.5 sm:px-2 py-0.5 font-semibold text-[8px] text-gray-600 sm:text-[9px] uppercase tracking-wide">
+            <span className="bg-gray-200 mt-1 px-1.5 sm:px-2 py-0.5 rounded-full font-semibold text-[8px] text-gray-600 sm:text-[9px] uppercase tracking-wide">
               WAITING
             </span>
           </>
@@ -67,14 +67,14 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
           <>
             {isPlaying && (
               <div className="flex items-center gap-1.5 bg-red-50 shadow-[0_0_18px_rgba(239,68,68,0.18)] mt-0.5 px-1.5 py-0.5 rounded-full font-bold text-[9px] text-red-500 sm:text-[10px]">
-                <span className="relative inline-flex items-center justify-center w-2.5 h-2.5 sm:w-3 sm:h-3">
-                  <span className="absolute inline-flex bg-red-400 opacity-75 rounded-full w-full h-full animate-ping" />
-                  <span className="relative inline-flex bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] rounded-full w-1.5 h-1.5 sm:w-2 sm:h-2" />
+                <span className="inline-flex relative justify-center items-center w-2.5 sm:w-3 h-2.5 sm:h-3">
+                  <span className="inline-flex absolute bg-red-400 opacity-75 rounded-full w-full h-full animate-ping" />
+                  <span className="inline-flex relative bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.95)] rounded-full w-1.5 sm:w-2 h-1.5 sm:h-2" />
                 </span>
                 LIVE
               </div>
             )}
-            <div className="flex text-center font-extrabold text-gray-800 text-lg sm:text-2xl leading-none">
+            <div className="flex font-extrabold text-gray-800 text-lg sm:text-2xl text-center leading-none">
               {match.totalTime ?? '-'}&apos;
             </div>
             <span
@@ -88,14 +88,14 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start">
-        <div className="min-w-0 justify-self-start text-left">
-          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[9px] uppercase tracking-wider">
+      <div className="items-start grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="justify-self-start min-w-0 text-left">
+          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
             TEAM A
           </div>
           <div className="flex items-start gap-1">
             <div
-              className={`min-w-0 text-[10px] sm:text-[11px] leading-snug truncate ${
+              className={`min-w-0 text-[10px] sm:text-[14px] leading-snug truncate ${
                 teamAWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
               } ${teamALabel === 'TBD' ? 'italic text-gray-400' : ''}`}
             >
@@ -112,15 +112,15 @@ const MatchRow = ({ match, isLast, isNotified, onToggleNotify }) => {
           </div>
         </div>
 
-        <div className="mx-2 sm:mx-3 self-stretch border-gray-200 border-l border-dashed" />
+        <div className="self-stretch mx-2 sm:mx-3 border-gray-200 border-l border-dashed" />
 
-        <div className="min-w-0 justify-self-start text-left">
-          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[9px] uppercase tracking-wider">
+        <div className="justify-self-start min-w-0 text-left">
+          <div className="mb-0.5 font-semibold text-[8px] text-gray-400 sm:text-[10px] uppercase tracking-wider">
             TEAM B
           </div>
           <div className="flex items-start gap-1">
             <div
-              className={`min-w-0 text-[10px] sm:text-[11px] leading-snug truncate ${
+              className={`min-w-0 text-[10px] sm:text-[14px] leading-snug truncate ${
                 teamBWon ? 'font-bold text-gray-900' : 'text-gray-600 font-semibold'
               } ${teamBLabel === 'TBD' ? 'italic text-gray-400' : ''}`}
             >
