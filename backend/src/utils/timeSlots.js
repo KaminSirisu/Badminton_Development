@@ -11,7 +11,7 @@ function generateCheckInSlots(startTime) {
 
     const slots = [];
 
-    for (let i=0; i<3; i++) {
+    for (let i=0; i<4; i++) {
         const totalMinutes = hour * 60 + (minute + (i * 30));
         const h = Math.floor(totalMinutes / 60) % 24;
         const m = totalMinutes % 60;

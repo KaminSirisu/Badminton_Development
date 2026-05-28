@@ -48,6 +48,7 @@ async function handleCheckInCommand({ lineUserId }) {
             1) ${slots[0]}
             2) ${slots[1]}
             3) ${slots[2]}
+            4) ${slots[3]}
             `
 }
 
@@ -99,7 +100,7 @@ async function handleTextMessage(event, client) {
 
         let reply = 'Unknown command. Type "help" to see commands.';
 
-        if (text === 'hello') {
+        if (text === 'hello' || text === 'สวัสดี') {
             reply = 'Hello 👋';
         }
 
