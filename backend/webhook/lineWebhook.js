@@ -1,6 +1,6 @@
-import { textMessageHandler } from './handlers/textMessageHandler.js';
+import { handleTextMessage } from '../handlers/textMessageHandler.js';
 
-async function webhook(req, res, client) {
+async function lineWebhook(req, res, client) {
     try {
         const events = req.body.events;
 
@@ -8,7 +8,7 @@ async function webhook(req, res, client) {
             if (event.type !== 'message') return;
             if (event.message.type !== 'text') return;
 
-            await textMessageHandler(event, client);
+            await handleTextMessage(event, client);
         }));
 
         res.status(200).send('OK');
@@ -18,6 +18,6 @@ async function webhook(req, res, client) {
     }
 }
 
-export default {
-    webhook,
+export {
+    lineWebhook,
 }

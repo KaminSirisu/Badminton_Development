@@ -1,11 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import * as line from '@line/bot-sdk';
+import { lineWebhook } from './webhook/lineWebhook.js';
 import path from 'path';
 
 // 1. Explicitly point dotenv to your backend folder's .env file
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+const PORT = process.env.PORT || 3001;
 
 const app = express();
 
@@ -24,32 +27,9 @@ app.get('/', (req, res) => {
 });
 
 app.post('/webhook', line.middleware(config), async (req, res) => {
-    try {
-        const events = req.body.events;
-
-        await Promise.all(events.map(async (event) => {
-            if (event.type !== 'message') return;
-            if (event.message.type !== 'text') return;
-
-            const userMessage = event.message.text;
-
-            await client.replyMessage({
-                replyToken: event.replyToken,
-                messages: [{
-                    type: 'text',
-                    text: `You said ${userMessage}`,
-                }]
-            });
-            
-        }));
-
-        res.status(200).send('OK');
-    } catch (e) {
-        console.error("Webhook Error: ", e);
-        res.status(500).send('Error');
-    }
+    lineWebhook(req, res, client);
 });
 
-app.listen(process.env.PORT || 3001, () => {
-    console.log(`LINE bot server running on port ${process.env.PORT || 3001}`);
+app.listen(PORT, () => {
+    console.log(`LINE bot server running on port ${PORT}`);
 });
