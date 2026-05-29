@@ -1,3 +1,4 @@
+import { getSession, clearSession } from '../state/userSessions.js';
 import { uploadSlipFromLine } from '../services/payments.js';
 
 async function getLineDisplayName(client, lineUserId) {
@@ -15,6 +16,20 @@ async function handleImageMessage(event, client) {
     const messageId = event.message.id;
     const clubId = process.env.DEFAULT_CLUB_ID;
 
+    const session = getSession(lineUserId);
+
+    if(session?.action !== 'waiting_for_slip') {
+        await client.replyMessage({
+            replyToken: event.replyToken,
+            messages: [
+                {
+                    type: 'text',
+                    text: 'กรุณากดปุ่มแปะสลิปที่เมนูหรือพิมพ์ "เมนู" ก่อนสลิปหลักฐานการชำระเงิน',
+                }
+            ]
+        })
+    }
+
     try {
         const lineDisplayName = await getLineDisplayName(client, lineUserId);
 
@@ -25,14 +40,16 @@ async function handleImageMessage(event, client) {
             clubId,
         });
 
+        clearSession(lineUserId);
+
         await client.replyMessage({
             replyToken: event.replyToken,
             messages: [
                 {
                     type: 'text',
-                    text: `Payment slip uploaded successfully
-                Name: ${lineDisplayName || 'LINE User'}
-                File ID: ${result.uploadedFile.$id}
+                    text: `อัปโหลดสลิปเรียบร้อย
+                ชื่อ: ${lineDisplayName || 'LINE User'}
+                ไอดีไฟล์: ${result.uploadedFile.$id}
                 `,
                 },
             ],
@@ -46,7 +63,7 @@ async function handleImageMessage(event, client) {
                 messages: [
                     {
                         type: 'text',
-                        text: 'You can upload payment slips only 3 times per day. Please try again tomorrow.',
+                        text: 'ผู้ใช้สามารถแปะสลิปได้แค่ 3 ครั้งต่อวัน กรุณาลองใหม่พรุ่งนี้',
                     },
                 ],
             });

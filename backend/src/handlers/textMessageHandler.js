@@ -131,6 +131,11 @@ async function handleTextMessage(event, client) {
         }
 
         if (text === 'slip' || text === 'สลิป') {
+            setSession(lineUserId, {
+                action: 'waiting_for_slip',
+                clubId: process.env.DEFAULT_CLUB_ID,
+            });
+            
             reply = `กรุณาส่งสลิปหลักฐานการชำระเงิน
 ข้อจำกัด: 3 รูปต่อวัน`
         }
