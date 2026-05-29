@@ -44,11 +44,12 @@ async function handleCheckInCommand({ lineUserId }) {
         slots,
     })
 
-    return `Select check-in time:
-            1) ${slots[0]}
-            2) ${slots[1]}
-            3) ${slots[2]}
-            4) ${slots[3]}
+    return `เลือกเวลาเช็คอิน:
+กรุณาเลือกเป็นตัวเลข 1, 2, 3 หรือ 4
+1) ${slots[0]}
+2) ${slots[1]}
+3) ${slots[2]}
+4) ${slots[3]}
             `
 }
 
@@ -57,7 +58,7 @@ async function handleSelectedCheckInSlot({ text, lineUserId, session, client }) 
     const selectedSlot = session.slots[selectedIndex];
 
     if (!selectedSlot) {
-        return 'Invalid option. Please reply 1, 2, or 3.';
+        return 'Invalid option. Please reply 1, 2, 3, or 4.';
     }
 
     const lineDisplayName = await getLineDisplayName(client, lineUserId);
@@ -71,10 +72,10 @@ async function handleSelectedCheckInSlot({ text, lineUserId, session, client }) 
 
     clearSession(lineUserId);
 
-    return `Check-in successful
-Name: ${lineDisplayName || 'LINE User'}
-Club: ${session.clubName}
-Time: ${selectedSlot}`;
+    return `เช็คอินเรียบร้อย
+ชื่อ: ${lineDisplayName || 'LINE User'}
+ก๊วน: ${session.clubName}
+เวลา: ${selectedSlot}`;
 }
 
 
@@ -98,18 +99,27 @@ async function handleTextMessage(event, client) {
             return;
         }
 
-        let reply = 'Unknown command. Type "help" to see commands.';
+        let reply = 'ไม่พบคำสั่ง กรุณาพิมพ์ help หรือ เมนู เพื่อดูคำสั่ง';
 
         if (text === 'hello' || text === 'สวัสดี') {
             reply = 'Hello 👋';
         }
 
-        if (text === 'help') {
-            reply = `Commands:
-        - hello
-        - help
-        - dashboard
-        - checkin/เช็คอิน
+        if (text === 'help' || text === 'menu' || text === 'เมนู') {
+            reply = `ผู้ช่วยก๊วนแบตมินตัน
+            
+คำสั่ง:
+- เช็คอิน / checkin
+  เลือกเวลาเช็คอินเข้าก๊วน
+
+- สถานะแมตซ์ / dashboard
+  ติดตามการจับคู่บนเว็บไซต์
+
+- แปะสลิป / slip
+  แนบสลิปโอนเงินให้กับเจ้าของก๊วน
+        
+ข้อจำกัด:
+สามารถแปะสลิปได้สูงสุด 3 รูปต่อวัน
         `;
         }
 
@@ -117,17 +127,13 @@ async function handleTextMessage(event, client) {
             const frontendUrl = process.env.FRONTEND_URL;
             const clubId = process.env.DEFAULT_CLUB_ID;
 
-            reply = `Live dashboard: ${frontendUrl}`;
+            reply = `ติดตามสถานะแมตซ์: ${frontendUrl}`;
         }
 
-        // if (text === 'appwrite-test') {
-        //     const result = await databases.listDocuments(
-        //         process.env.APPWRITE_DATABASE_ID,
-        //         process.env.APPWRITE_CLUBS_COLLECTION_ID
-        //     );
-
-        //     reply = `Appwrite connected Clubs found: ${result.total}`
-        // }
+        if (text === 'slip' || text === 'สลิป') {
+            reply = `กรุณาส่งสลิปหลักฐานการชำระเงิน
+ข้อจำกัด: 3 รูปต่อวัน`
+        }
 
         if (text === 'checkin' || text === 'เช็คอิน') {
             reply = await handleCheckInCommand({ lineUserId });
