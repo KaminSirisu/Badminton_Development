@@ -8,9 +8,20 @@ const client = new Client()
 const databases = new Databases(client);
 const storage = new Storage(client);
 
+const appwriteConfig = {
+    databaseId: process.env.APPWRITE_DATABASE_ID,
+    playersCollectionId: process.env.APPWRITE_PLAYERS_COLLECTION_ID,
+    clubsCollectionId: process.env.APPWRITE_CLUBS_COLLECTION_ID,
+    checkinCollectionId: process.env.APPWRITE_CHECKIN_COLLECTION_ID,
+    moneySlipCollectionId: process.env.APPWRITE_MONEYSLIP_COLLECTION_ID,
+    slipStorageId: process.env.APPWRITE_SLIP_STORAGE_ID,
+}
+
 export {
+    client,
     databases,
     storage,
     ID,
     Query,
+    appwriteConfig,
 };

@@ -1,11 +1,16 @@
+// import { getLineProfile } from '../services/lineProfile.js';
+import { linkLineUserToPlayer, getPlayerByLineUserId } from '../services/players.js';
 import { getClubById } from '../services/clubs.js';
-import { createCheckIn } from '../services/checkins.js';
+import { createLineCheckIn } from '../services/checkins.js';
 import { generateCheckInSlots } from '../utils/timeSlots.js';
 import { 
     setSession, 
     getSession, 
     clearSession, 
 } from '../state/userSessions.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const DEFAULT_CLUB_ID = process.env.DEFAULT_CLUB_ID;
 
 async function getLineDisplayName(client, lineUserId) {
     try {
@@ -34,6 +39,18 @@ async function handleCheckInCommand({ lineUserId }) {
 
     if (!clubId) throw new Error('DEFAULT_CLUB_ID is missing in .env');
 
+    const linkedPlayer = await getPlayerByLineUserId(lineUserId);
+
+    if (!linkedPlayer) {
+        return `กรุณาเชื่อม LINE กับชื่อผู้เล่นในก๊วนก่อนเช็คอิน
+
+พิมพ์:
+link ชื่อผู้เล่น
+
+ตัวอย่าง:
+link GuyGam`;
+    }
+
     const club = await getClubById(clubId);
     const slots = generateCheckInSlots(club.startTime);
 
@@ -41,10 +58,12 @@ async function handleCheckInCommand({ lineUserId }) {
         action: 'select_checkin_slot',
         clubId,
         clubName: club.clubName || club.name || 'Club',
+        playerId: linkedPlayer.$id,
+        playerName: linkedPlayer.name,
         slots,
     })
 
-    return `เลือกเวลาเช็คอิน:
+    return `เลือกเวลาเช็คอินสำหรับ ${linkedPlayer.name}:
 กรุณาเลือกเป็นตัวเลข 1, 2, 3 หรือ 4
 1) ${slots[0]}
 2) ${slots[1]}
@@ -63,17 +82,19 @@ async function handleSelectedCheckInSlot({ text, lineUserId, session, client }) 
 
     const lineDisplayName = await getLineDisplayName(client, lineUserId);
 
-    await createCheckIn({
+    await createLineCheckIn({
         lineUserId,
         lineDisplayName,
         clubId: session.clubId,
         checkInTime: selectedSlot,
+        playerId: session.playerId,
+        playerName: session.playerName,
     });
 
     clearSession(lineUserId);
 
     return `เช็คอินเรียบร้อย
-ชื่อ: ${lineDisplayName || 'LINE User'}
+ชื่อ: ${session.playerName}
 ก๊วน: ${session.clubName}
 เวลา: ${selectedSlot}`;
 }
@@ -121,6 +142,23 @@ async function handleTextMessage(event, client) {
 ข้อจำกัด:
 สามารถแปะสลิปได้สูงสุด 3 รูปต่อวัน
         `;
+        }
+
+        if (text === 'link') {
+            reply `กรุณาพิมพ์ชื่อผู้เล่นตามที่เจ้าของก๊วนสร้่างไว้\nตัวอย่าง\nlink GamGuy`
+        }
+
+        if (text.startsWith('link ')) {
+            const playerName = event.message.text.replace(/^link\s+/i, '').trim();
+            const lineDisplayName = await getLineDisplayName(client, lineUserId);
+
+            const result = await linkLineUserToPlayer({
+                playerName,
+                lineUserId,
+                lineDisplayName,
+            });
+
+            reply = result.message;
         }
 
         if (text === 'dashboard') {

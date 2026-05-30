@@ -1,34 +1,38 @@
-import { databases, ID } from '../appwrite/client.js';
+import { databases, ID, appwriteConfig } from '../appwrite/client.js';
+import { getPlayerByLineUserId } from './players.js';
+const { databaseId, checkinCollectionId } = appwriteConfig;
 
-async function createCheckIn({ lineUserId, lineDisplayName, clubId, checkInTime }) {
-    if (!lineUserId) {
-        throw new Error('lineUserId is required');
-    }
+async function createLineCheckIn({
+    lineUserId, 
+    lineDisplayName, 
+    clubId, 
+    checkInTime,
+    playerId,
+    playerName, 
+}) {
+    if (!lineUserId) throw new Error('lineUserId is required');
+    if (!clubId) throw new Error('clubId is required');
+    if (!checkInTime) throw new Error('checkInTime is required');
+    if (!playerId) throw new Error('playerId is required');
+    if (!playerName) throw new Error('playerName is required');
 
-    if (!clubId) {
-        throw new Error('clubId is required');
-    }
-
-    if (!checkInTime) {
-        throw new Error('checkInTime is required');
-    }
-
-    const now = new Date();
-
-    return databases.createDocument(
-        process.env.APPWRITE_DATABASE_ID,
-        process.env.APPWRITE_CHECKIN_COLLECTION_ID,
+    return await databases.createDocument(
+        databaseId,
+        checkinCollectionId,
         ID.unique(),
         {
-            name: lineDisplayName || `LINE User ${lineUserId}`,
+            name: playerName,
+            playerId,
             clubId,
             checkInTime,
-            createAt: now.toISOString(),
-            source: 'LINE'
+            createAt: new Date().toISOString(),
+            source: 'LINE',
+            lineUserId,
+            lineDisplayName: lineDisplayName || 'LINE User',
         }
     );
 }
 
 export {
-    createCheckIn,
+    createLineCheckIn,
 }
