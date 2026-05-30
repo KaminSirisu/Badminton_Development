@@ -30,6 +30,28 @@ async function handleImageMessage(event, client) {
         })
     }
 
+    if (!session.playerId || !session.playerName) {
+        clearSession(lineUserId);
+
+        await client.replyMessage({
+            replyToken: event.replyToken,
+            messages: [
+                {
+                    type: 'text',
+                    text: `กรุณา link LINE กับชื่อผู้เล่นก่อนส่งสลิป
+
+พิมพ์:
+link ชื่อผู้เล่น
+
+ตัวอย่าง:
+link GuyGam`,
+                }
+            ]
+        });
+
+        return;
+    }
+
     try {
         const lineDisplayName = await getLineDisplayName(client, lineUserId);
 
@@ -38,6 +60,8 @@ async function handleImageMessage(event, client) {
             lineDisplayName,
             messageId,
             clubId,
+            playerId: session.playerId,
+            playerName: session.playerName,
         });
 
         clearSession(lineUserId);
@@ -48,7 +72,7 @@ async function handleImageMessage(event, client) {
                 {
                     type: 'text',
                     text: `อัปโหลดสลิปเรียบร้อย
-                ชื่อ: ${lineDisplayName || 'LINE User'}
+                ชื่อ: ${session.playerName}
                 ไอดีไฟล์: ${result.uploadedFile.$id}
                 `,
                 },

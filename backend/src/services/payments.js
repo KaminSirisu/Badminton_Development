@@ -1,7 +1,12 @@
-import { storage, databases, ID, Query } from '../appwrite/client.js';
+import { storage, databases, ID, Query, appwriteConfig } from '../appwrite/client.js';
 import { InputFile } from 'node-appwrite/file';
 
 const DAILY_SLIP_LIMIT = 3;
+const {
+    databaseId,
+    moneySlipCollectionId,
+    slipStorageId,
+} = appwriteConfig;
 
 function getBangkokDayRange() {
     const now = new Date();
@@ -26,8 +31,8 @@ async function assertDailySlipLimit(lineUserId) {
     const { startIso, endIso } = getBangkokDayRange();
 
     const result = await databases.listDocuments(
-        process.env.APPWRITE_DATABASE_ID,
-        process.env.APPWRITE_MONEYSLIP_COLLECTION_ID,
+        databaseId,
+        moneySlipCollectionId,
         [
             Query.equal('lineUserId', lineUserId),
             Query.greaterThanEqual('timestamp', startIso),
@@ -68,10 +73,14 @@ async function uploadSlipFromLine({
     lineDisplayName,
     messageId,
     clubId,
+    playerId,
+    playerName,
 }) {
     if (!lineUserId) throw new Error('lineUserId is required');
     if (!messageId) throw new Error('messageId is required');
     if (!clubId) throw new Error('clubId is required');
+    if (!playerId) throw new Error('playerId is required');
+    if (!playerName) throw new Error('playerName is required');
 
     await assertDailySlipLimit(lineUserId);
 
@@ -82,7 +91,7 @@ async function uploadSlipFromLine({
     const file = InputFile.fromBuffer(imageBuffer, filename);
 
     const uploadedFile = await storage.createFile(
-        process.env.APPWRITE_SLIP_STORAGE_ID,
+        slipStorageId,
         ID.unique(),
         file
     );
@@ -90,14 +99,15 @@ async function uploadSlipFromLine({
     const now = new Date();
 
     const slipDocument = await databases.createDocument(
-        process.env.APPWRITE_DATABASE_ID,
-        process.env.APPWRITE_MONEYSLIP_COLLECTION_ID,
+        databaseId,
+        moneySlipCollectionId,
         ID.unique(),
         {
-            user: lineDisplayName || `LINE user ${lineUserId}`,
+            user: playerName,
             club: clubId,
             fileId: uploadedFile.$id,
             timestamp: now.toISOString(),
+            playerId,
             // source: 'line',
             lineUserId,
             // status: 'pending'

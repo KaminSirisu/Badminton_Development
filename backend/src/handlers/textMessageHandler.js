@@ -169,13 +169,29 @@ async function handleTextMessage(event, client) {
         }
 
         if (text === 'slip' || text === 'สลิป') {
-            setSession(lineUserId, {
-                action: 'waiting_for_slip',
-                clubId: process.env.DEFAULT_CLUB_ID,
-            });
+            const linkedPlayer = await getPlayerByLineUserId(lineUserId);
+
+            if (!linkedPlayer) {
+                reply = `กรุณา link LINE กับชื่อผู้เล่นก่อนส่งสลิป
+
+พิมพ์:
+link ชื่อผู้เล่น
+
+ตัวอย่าง:
+link GuyGam`;
+            } else {
+                setSession(lineUserId, {
+                    action: 'waiting_for_slip',
+                    clubId: process.env.DEFAULT_CLUB_ID,
+                    playerId: linkedPlayer.$id,
+                    playerName: linkedPlayer.name,
+                });
+                
+                reply = `กรุณาส่งสลิปหลักฐานการชำระเงิน
+    ชื่อผู้เล่น: ${linkedPlayer.name}
+    ข้อจำกัด: 3 รูปต่อวัน`
+            }
             
-            reply = `กรุณาส่งสลิปหลักฐานการชำระเงิน
-ข้อจำกัด: 3 รูปต่อวัน`
         }
 
         if (text === 'checkin' || text === 'เช็คอิน') {
