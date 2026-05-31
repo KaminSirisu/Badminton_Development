@@ -1,30 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '../component/Navbar.jsx';
 import BottomNav from '../component/BottomNav.jsx';
 import DashboardMatchesTable from '../component/DashboardMatchesTable.jsx';
 import { useLanguage } from '../utils/LanguageProvider.jsx';
-import courtBg from '../assets/banner_badminton.jpg';
 import { useAuth } from '../utils/AuthContext.jsx';
 
-
-const isTodayStartTime = (value) => {
-  if (!value) return false;
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return false;
-
-  const now = new Date();
-  return (
-    parsed.getFullYear() === now.getFullYear() &&
-    parsed.getMonth() === now.getMonth() &&
-    parsed.getDate() === now.getDate()
-  );
+const statusDisplayOrder = {
+  PLAYING: 0,
+  WAITING: 1,
+  FINISHED: 2,
 };
 
 const Dashboard = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
 
   const { id: urlClubId } = useParams();
@@ -32,6 +22,7 @@ const Dashboard = () => {
     getClubData,
     getDashboardMatchesByClubId,
     subscribeToDashboardMatches,
+    getUserName,
   } = useAuth();
 
   const [matches, setMatches] = useState([]);
@@ -41,19 +32,19 @@ const Dashboard = () => {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const matchesCacheRef = useRef({});
 
+  const userName = getUserName();
+
   useEffect(() => {
     if (urlClubId) {
       setActiveClubId(urlClubId);
     }
   }, [urlClubId]);
 
-  // Fetch all clubs to build the tab bar
   useEffect(() => {
     const fetchClubs = async () => {
       try {
         const data = await getClubData();
         setClubs(data);
-        // If no URL club ID, default to the first club
         if (!urlClubId && data.length > 0) {
           setActiveClubId(data[0].id);
         }
@@ -64,7 +55,6 @@ const Dashboard = () => {
     fetchClubs();
   }, [getClubData, urlClubId]);
 
-  // Fetch & subscribe to matches whenever active club changes
   useEffect(() => {
     if (!activeClubId) return;
 
@@ -87,36 +77,31 @@ const Dashboard = () => {
 
         unsubscribe = subscribeToDashboardMatches(activeClubId, ({ events, match, payload }) => {
           if (!isActive) return;
-          if (!isTodayStartTime(match.startTime)) return;
 
-          if (events.some((eventName) => eventName.includes('.create'))) {
+          if (events.some((e) => e.includes('.create'))) {
             setMatches((prev) => {
-              const nextMatches = prev.some((item) => item.id === match.id)
-                ? prev
-                : [...prev, match];
-              matchesCacheRef.current[activeClubId] = nextMatches;
-              return nextMatches;
+              const next = prev.some((item) => item.id === match.id) ? prev : [...prev, match];
+              matchesCacheRef.current[activeClubId] = next;
+              return next;
             });
-          } else if (events.some((eventName) => eventName.includes('.update'))) {
+          } else if (events.some((e) => e.includes('.update'))) {
             setMatches((prev) => {
-              const nextMatches = prev.map((item) => (item.id === match.id ? match : item));
-              matchesCacheRef.current[activeClubId] = nextMatches;
-              return nextMatches;
+              const next = prev.map((item) => (item.id === match.id ? match : item));
+              matchesCacheRef.current[activeClubId] = next;
+              return next;
             });
-          } else if (events.some((eventName) => eventName.includes('.delete'))) {
+          } else if (events.some((e) => e.includes('.delete'))) {
             setMatches((prev) => {
-              const nextMatches = prev.filter((item) => item.id !== payload.$id);
-              matchesCacheRef.current[activeClubId] = nextMatches;
-              return nextMatches;
+              const next = prev.filter((item) => item.id !== payload.$id);
+              matchesCacheRef.current[activeClubId] = next;
+              return next;
             });
           }
         });
       } catch (e) {
         console.error('Failed to fetch dashboard data:', e);
       } finally {
-        if (isActive) {
-          setIsLoadingMatches(false);
-        }
+        if (isActive) setIsLoadingMatches(false);
       }
     };
 
@@ -129,7 +114,40 @@ const Dashboard = () => {
   }, [activeClubId, getDashboardMatchesByClubId, subscribeToDashboardMatches]);
 
   const activeClub = clubs.find((club) => club.id === activeClubId) || null;
-  const clubName = activeClub?.clubName || '';
+  const clubName = activeClub?.clubName || t('clubTitle');
+
+  const dashboardDate = useMemo(() => {
+    const locale = language === 'th' ? 'th-TH' : 'en-US';
+    return new Intl.DateTimeFormat(locale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+  }, [language]);
+
+  const sortedMatches = useMemo(() => {
+    return [...matches].sort((a, b) => {
+      const statusGap =
+        (statusDisplayOrder[a.status] ?? Number.MAX_SAFE_INTEGER) -
+        (statusDisplayOrder[b.status] ?? Number.MAX_SAFE_INTEGER);
+      if (statusGap !== 0) return statusGap;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }, [matches]);
+
+  const matchSummary = useMemo(() => {
+    return sortedMatches.reduce(
+      (summary, match) => {
+        if (match.status === 'PLAYING') summary.playing += 1;
+        else if (match.status === 'WAITING') summary.waiting += 1;
+        else if (match.status === 'FINISHED') summary.finished += 1;
+        summary.total += 1;
+        return summary;
+      },
+      { playing: 0, waiting: 0, finished: 0, total: 0 }
+    );
+  }, [sortedMatches]);
 
   const toggleNotify = (matchId) => {
     setNotifiedMatches((prev) => {
@@ -140,88 +158,73 @@ const Dashboard = () => {
     });
   };
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
   return (
-    <div className="flex flex-col bg-neutral-100 min-h-screen">
+    <div className="flex flex-col bg-gray-50 min-h-screen">
       <Navbar />
 
-      {/* Back button */}
-      {/* <button
-        onClick={() => navigate(-1)}
-        className="top-[68px] left-4 z-50 fixed bg-white shadow-lg hover:shadow-xl border border-gray-200 rounded-full p-0.5 transition"
-      >
-        <ArrowLeft className="w-7 md:w-8 h-7 md:h-8 text-blue-600 cursor-pointer" />
-      </button> */}
+      <div className="flex-grow pb-24 mx-auto w-full max-w-2xl">
+        {/* Date */}
+        <p className="px-4 pt-2 sm:pt-4 pb-1 sm:pb-3 text-xs sm:text-sm text-gray-400">{dashboardDate}</p>
 
-      <div className="flex-grow pb-24 px-4 sm:px-6 pt-4 sm:pt-6">
-        <div className="mx-auto max-w-2xl">
-
-          {/* Banner */}
-          <div
-            className="relative shadow-xl mb-1 rounded-2xl overflow-hidden"
-            style={{
-              backgroundImage: `url(${courtBg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center 35%',
-            }}
-          >
-            <div className="absolute inset-0 bg-black/65" />
-            <button
-              onClick={() => navigate(-1)}
-              className="relative z-10 inline-flex items-center gap-2 bg-white/12 hover:bg-white/18 mt-3 sm:mt-5 px-3 rounded-full text-sm text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t('Back to Home')}
-            </button>
-            <div className="relative px-5 pb-3 sm:px-8 sm:pt-2 sm:pb-3 text-white">
-              <p className="text-[10px] text-gray-400 sm:text-[11px] uppercase tracking-wider">
-                {today}
-              </p>
-              <h1 className="font-extrabold text-base sm:text-2xl uppercase leading-tight tracking-wide mt-0.5">
-                {clubName ? `${clubName} - ${t('Today\'s Scores')}` : t('Today\'s Scores')}
-              </h1>
-            </div>
-          </div>
-
-          {/* Club Tab Selector */}
-          {clubs.length > 1 && (
-            <div className="bg-gray-100 rounded-xl p-1 flex gap-1 mb-2 shadow-inner">
+        {/* Club tabs */}
+        {clubs.length > 1 && (
+          <div className="px-4 pb-1 sm:pb-3">
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl">
               {clubs.map((club) => (
                 <button
                   key={club.id}
                   onClick={() => setActiveClubId(club.id)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all truncate ${
                     activeClubId === club.id
                       ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   {club.clubName}
                 </button>
               ))}
             </div>
-          )}
-
-          {/* Match Table */}
-          <div className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
-            {isLoadingMatches && (
-              <div className="bg-blue-50 px-4 py-2 border-blue-100 border-b text-blue-700 text-xs sm:text-sm">
-                Refreshing matches...
-              </div>
-            )}
-            <DashboardMatchesTable
-              matches={matches}
-              notifiedMatches={notifiedMatches}
-              onToggleNotify={toggleNotify}
-            />
           </div>
+        )}
 
+        {/* Status chips */}
+        <div className="flex items-center gap-0.5 sm:gap-1 px-4 pb-1.5 sm:pb-3 flex-wrap">
+          <div className="flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1 bg-white">
+            <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="text-[10px] sm:text-xs font-medium text-gray-700">
+              {t('PLAYING')} {matchSummary.playing}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 border border-gray-200 rounded-full px-3 py-1 bg-white">
+            <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+            <span className="text-[10px] sm:text-xs font-medium text-gray-700">
+              {t('WAITING')} {matchSummary.waiting}
+            </span>
+          </div>
+          <div className="border border-gray-200 rounded-full px-3 bg-white">
+            <span className="text-[10px] sm:text-xs font-medium text-gray-700">
+              {t('FINISHED')} {matchSummary.finished}
+            </span>
+          </div>
+          <div className="ml-auto text-[10px] sm:text-xs text-gray-400">
+            {t('Total')} {matchSummary.total} {t('games')}
+          </div>
+        </div>
+
+        {/* Loading indicator */}
+        {isLoadingMatches && (
+          <div className="mx-4 mb-3 bg-sky-50 border border-sky-100 rounded-xl px-4 py-2 text-sky-600 text-sm">
+            Refreshing matches...
+          </div>
+        )}
+
+        {/* Match list */}
+        <div className="px-4">
+          <DashboardMatchesTable
+            matches={sortedMatches}
+            notifiedMatches={notifiedMatches}
+            onToggleNotify={toggleNotify}
+          />
         </div>
       </div>
 

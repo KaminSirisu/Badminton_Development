@@ -216,7 +216,7 @@ const Home = () => {
   const handleClearCheckIns = async () => {
     const confirmed = window.confirm("Are you sure you want to clear all check-ins?");
     if (confirmed) {
-      await clearCheckIns();
+      await clearCheckIns(selectedClub?.id);
       setCheckIns([]);
       toast.success("Clear Check-Ins successed")
     } else {

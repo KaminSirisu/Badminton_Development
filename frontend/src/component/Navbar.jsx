@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useAuth } from '../utils/AuthContext.jsx';
 import { Link, useLocation } from "react-router-dom";
 import PreviewFilesList from './PreviewFilesList.jsx';
@@ -140,21 +140,21 @@ const Navbar = () => {
 
         
         {/* Mobile — username + language badge */}
-        <div className="md:hidden flex justify-end items-center">
+        <div className="md:hidden relative flex justify-end items-center">
           <button
             onClick={() => setToggle(!toggle)}
-            className="flex items-center gap-2 focus:outline-none"
+            className="flex items-center gap-2 text-black focus:outline-none"
             aria-label="Open menu"
           >
             <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">{name}</span>
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-              {language.toUpperCase()}
-            </div>
+            <Menu size={20} className={`text-black transition-transform duration-200 ${toggle ? 'rotate-90' : 'rotate-0'}`} />
           </button>
           <div
-            className={`${
-              !toggle ? "hidden" : "flex"
-            } p-6 bg-white shadow-md absolute top-16 right-4 rounded-xl flex-col gap-4 z-30 items-center text-center`}
+            className={`absolute top-10 z-30 w-52 rounded-xl bg-white p-5 shadow-lg border border-gray-100 flex flex-col gap-4 items-center text-center origin-top-right transition-all duration-200 ${
+              toggle
+                ? 'pointer-events-auto translate-y-0 opacity-100 scale-100'
+                : 'pointer-events-none -translate-y-2 opacity-0 scale-95'
+            }`}
           >
             <span className="font-medium text-[14px] text-gray-700">{name}</span>
             {/* Horizontal line */}

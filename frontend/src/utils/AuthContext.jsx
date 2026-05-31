@@ -486,14 +486,19 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const clearCheckIns = async () => {
+  const clearCheckIns = async (clubId) => {
     try {
-      // List all check-in documents
-      const oneDayAgoISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      if (!clubId) {
+        throw new Error("clubId is required to clear check-ins");
+      }
 
-      const response = await databases.listDocuments(DATABASE_ID, CHECKIN_COLLECTION_ID, [
-        Query.lessThan("createAt", oneDayAgoISO)
-      ]);
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        CHECKIN_COLLECTION_ID,
+        [
+          Query.equal("clubId", clubId),
+        ]
+      );
 
       if (response.documents.length === 0) {
         console.log("No check-ins to delete.");
@@ -507,7 +512,7 @@ export const AuthProvider = ({ children }) => {
         )
       );
 
-      console.log(`Deleted ${response.documents.length} check-ins.`);
+      console.log(`Deleted ${response.documents.length} check-ins for club ${clubId}.`);
     } catch (error) {
       console.error("Failed to clear check-ins:", error);
     }
@@ -573,18 +578,11 @@ export const AuthProvider = ({ children }) => {
 
   const getDashboardMatchesByClubId = useCallback(async (clubId) => {
     try {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setDate(endOfDay.getDate() + 1);
-
       const response = await databases.listDocuments(
         DATABASE_ID,
         MATCHES_COLLECTION_ID,
         [
           Query.equal('clubId', clubId),
-          Query.greaterThanEqual('startTime', startOfDay.toISOString()),
-          Query.lessThan('startTime', endOfDay.toISOString()),
           Query.orderAsc('startTime'),
         ]
       );
