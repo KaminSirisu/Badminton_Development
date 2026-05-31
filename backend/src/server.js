@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import * as line from '@line/bot-sdk';
+import cors from 'cors';
 import { lineWebhook } from './webhook/lineWebhook.js';
+import { createQrCheckIn } from './services/checkins.js';
 import path from 'path';
 
 // 1. Explicitly point dotenv to your backend folder's .env file
@@ -25,6 +27,37 @@ const client = line.LineBotClient.fromChannelAccessToken({
 app.get('/', (req, res) => {
     res.send('LINE Bot Server is running smoothly!');
 });
+
+app.use(cors({
+    origin: 'https://badmintonclub.vercel.app',
+    methods: ['POST'],
+}));
+
+app.post('/api/line/qr-checkin', express.json(), async (req, res) => {
+    try {
+        const { clubId, lineUserId, lineDisplayName } = req.body;
+
+        const result = await createQrCheckIn({
+            clubId,
+            lineUserId,
+            lineDisplayName,
+        });
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('QR check-in failed:', error);
+
+        const isValidationError =
+            error.message.includes('is required');
+
+        res.status(isValidationError ? 400 : 500).json({
+            ok: false,
+            message: isValidationError
+                ? error.message
+                : 'Unable to check in. Please try again later.',
+        });
+    }
+})
 
 app.post('/webhook', line.middleware(config), async (req, res) => {
     lineWebhook(req, res, client);

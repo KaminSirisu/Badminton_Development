@@ -12,6 +12,7 @@ import CourtPlayer from './pages/CourtPlayer';
 import Summary from './pages/Summary';
 import Dashboard from './pages/Dashboard';
 import MatchHistory from './pages/MatchHistory';
+import LiffCheckIn from './pages/LiffCheckIn';
 import { LanguageProvider } from './utils/LanguageProvider';
 
 
@@ -32,6 +33,7 @@ const App = () => {
           <Routes>
             <Route path="/sign-in" element={<LogIn />} />
             <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/liff/checkin" element={<LiffCheckIn />} />
             {/* User:true then can access Home page */}
             <Route element={<PrivateRoutes />}>
               <Route path="/" element={<Home />} />

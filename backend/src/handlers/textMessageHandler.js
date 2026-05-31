@@ -1,7 +1,7 @@
 // import { getLineProfile } from '../services/lineProfile.js';
-import { linkLineUserToPlayer, getPlayerByLineUserId } from '../services/players.js';
+import { getPlayerByLineUserId } from '../services/players.js';
 import { getClubById } from '../services/clubs.js';
-import { createLineCheckIn } from '../services/checkins.js';
+import { createLineBooking } from '../services/bookings.js';
 import { generateCheckInSlots } from '../utils/timeSlots.js';
 import { 
     setSession, 
@@ -11,6 +11,7 @@ import {
 
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const DEFAULT_CLUB_ID = process.env.DEFAULT_CLUB_ID;
+const BOOKING_COMMANDS = new Set(['checkin', 'booking', 'เช็คอิน', 'จองเวลา']);
 
 async function getLineDisplayName(client, lineUserId) {
     try {
@@ -34,45 +35,35 @@ async function replyText(client, replyToken, text) {
     });
 }
 
-async function handleCheckInCommand({ lineUserId }) {
-    const clubId = process.env.DEFAULT_CLUB_ID;
+async function handleBookingCommand({ lineUserId, client }) {
+    const clubId = DEFAULT_CLUB_ID;
 
     if (!clubId) throw new Error('DEFAULT_CLUB_ID is missing in .env');
 
     const linkedPlayer = await getPlayerByLineUserId(lineUserId);
-
-    if (!linkedPlayer) {
-        return `กรุณาเชื่อม LINE กับชื่อผู้เล่นในก๊วนก่อนเช็คอิน
-
-พิมพ์:
-link ชื่อผู้เล่น
-
-ตัวอย่าง:
-link GuyGam`;
-    }
-
     const club = await getClubById(clubId);
     const slots = generateCheckInSlots(club.startTime);
+    const lineDisplayName = await getLineDisplayName(client, lineUserId);
+    const displayName = linkedPlayer?.name || lineDisplayName || 'ผู้เล่น';
 
     setSession(lineUserId, {
-        action: 'select_checkin_slot',
+        action: 'select_booking_slot',
         clubId,
         clubName: club.clubName || club.name || 'Club',
-        playerId: linkedPlayer.$id,
-        playerName: linkedPlayer.name,
+        playerName: linkedPlayer?.name || null,
         slots,
-    })
+    });
 
-    return `เลือกเวลาเช็คอินสำหรับ ${linkedPlayer.name}:
+    return `เลือกเวลาจองสำหรับ ${displayName}:
 กรุณาเลือกเป็นตัวเลข 1, 2, 3 หรือ 4
 1) ${slots[0]}
 2) ${slots[1]}
 3) ${slots[2]}
 4) ${slots[3]}
-            `
+            `;
 }
 
-async function handleSelectedCheckInSlot({ text, lineUserId, session, client }) {
+async function handleSelectedBookingSlot({ text, lineUserId, session, client }) {
     const selectedIndex = Number(text) - 1;
     const selectedSlot = session.slots[selectedIndex];
 
@@ -82,19 +73,19 @@ async function handleSelectedCheckInSlot({ text, lineUserId, session, client }) 
 
     const lineDisplayName = await getLineDisplayName(client, lineUserId);
 
-    await createLineCheckIn({
+    const booking = await createLineBooking({
         lineUserId,
         lineDisplayName,
         clubId: session.clubId,
-        checkInTime: selectedSlot,
-        playerId: session.playerId,
-        playerName: session.playerName,
+        bookingTime: selectedSlot,
     });
 
     clearSession(lineUserId);
 
-    return `เช็คอินเรียบร้อย
-ชื่อ: ${session.playerName}
+    const bookedName = booking.playerName || lineDisplayName || session.playerName || 'LINE User';
+
+    return `จองเวลาเรียบร้อย
+ชื่อ: ${bookedName}
 ก๊วน: ${session.clubName}
 เวลา: ${selectedSlot}`;
 }
@@ -108,8 +99,8 @@ async function handleTextMessage(event, client) {
     try {
         const session = getSession(lineUserId);
 
-        if (session?.action === 'select_checkin_slot') {
-            const reply = await handleSelectedCheckInSlot({
+        if (session?.action === 'select_booking_slot') {
+            const reply = await handleSelectedBookingSlot({
                 text,
                 lineUserId,
                 session,
@@ -130,8 +121,8 @@ async function handleTextMessage(event, client) {
             reply = `ผู้ช่วยก๊วนแบตมินตัน
             
 คำสั่ง:
-- เช็คอิน / checkin
-  เลือกเวลาเช็คอินเข้าก๊วน
+- เช็คอิน / checkin / booking / จองเวลา
+  เลือกเวลาที่คาดว่าจะเข้าก๊วน
 
 - สถานะแมตซ์ / dashboard
   ติดตามการจับคู่บนเว็บไซต์
@@ -142,23 +133,6 @@ async function handleTextMessage(event, client) {
 ข้อจำกัด:
 สามารถแปะสลิปได้สูงสุด 3 รูปต่อวัน
         `;
-        }
-
-        if (text === 'link') {
-            reply `กรุณาพิมพ์ชื่อผู้เล่นตามที่เจ้าของก๊วนสร้่างไว้\nตัวอย่าง\nlink GamGuy`
-        }
-
-        if (text.startsWith('link ')) {
-            const playerName = event.message.text.replace(/^link\s+/i, '').trim();
-            const lineDisplayName = await getLineDisplayName(client, lineUserId);
-
-            const result = await linkLineUserToPlayer({
-                playerName,
-                lineUserId,
-                lineDisplayName,
-            });
-
-            reply = result.message;
         }
 
         if (text === 'dashboard') {
@@ -172,13 +146,8 @@ async function handleTextMessage(event, client) {
             const linkedPlayer = await getPlayerByLineUserId(lineUserId);
 
             if (!linkedPlayer) {
-                reply = `กรุณา link LINE กับชื่อผู้เล่นก่อนส่งสลิป
-
-พิมพ์:
-link ชื่อผู้เล่น
-
-ตัวอย่าง:
-link GuyGam`;
+                reply = `ยังไม่พบข้อมูลผู้เล่นสำหรับบัญชี LINE นี้
+กรุณาแจ้งแอดมินให้ยืนยันชื่อผู้เล่นก่อนส่งสลิป`;
             } else {
                 setSession(lineUserId, {
                     action: 'waiting_for_slip',
@@ -194,8 +163,8 @@ link GuyGam`;
             
         }
 
-        if (text === 'checkin' || text === 'เช็คอิน') {
-            reply = await handleCheckInCommand({ lineUserId });
+        if (BOOKING_COMMANDS.has(text)) {
+            reply = await handleBookingCommand({ lineUserId, client });
         }
         await replyText(client, replyToken, reply);
     } catch (err) {

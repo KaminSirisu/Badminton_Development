@@ -13,6 +13,7 @@ const appwriteConfig = {
     playersCollectionId: process.env.APPWRITE_PLAYERS_COLLECTION_ID,
     clubsCollectionId: process.env.APPWRITE_CLUBS_COLLECTION_ID,
     checkinCollectionId: process.env.APPWRITE_CHECKIN_COLLECTION_ID,
+    bookingsCollectionId: process.env.APPWRITE_BOOKINGS_COLLECTION_ID,
     moneySlipCollectionId: process.env.APPWRITE_MONEYSLIP_COLLECTION_ID,
     slipStorageId: process.env.APPWRITE_SLIP_STORAGE_ID,
 }
