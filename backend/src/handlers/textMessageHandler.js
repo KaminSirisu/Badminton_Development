@@ -139,7 +139,7 @@ async function handleTextMessage(event, client) {
             const frontendUrl = process.env.FRONTEND_URL;
             const clubId = process.env.DEFAULT_CLUB_ID;
 
-            reply = `ติดตามสถานะแมตซ์: ${frontendUrl}`;
+            reply = `ติดตามสถานะแมตซ์: ${frontendUrl}/dashboard`;
         }
 
         if (text === 'slip' || text === 'สลิป') {
