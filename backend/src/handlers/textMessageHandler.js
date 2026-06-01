@@ -68,7 +68,7 @@ async function handleSelectedBookingSlot({ text, lineUserId, session, client }) 
     const selectedSlot = session.slots[selectedIndex];
 
     if (!selectedSlot) {
-        return 'Invalid option. Please reply 1, 2, 3, or 4.';
+        return 'ตัวเลือกผิดพลาด กรุณาเลือก 1, 2, 3, or 4 ตามเวลาที่ต้องการจอง';
     }
 
     const lineDisplayName = await getLineDisplayName(client, lineUserId);
@@ -87,7 +87,9 @@ async function handleSelectedBookingSlot({ text, lineUserId, session, client }) 
     return `จองเวลาเรียบร้อย
 ชื่อ: ${bookedName}
 ก๊วน: ${session.clubName}
-เวลา: ${selectedSlot}`;
+เวลา: ${selectedSlot}
+เมื่อถึงสนาม กรุณาสแกนคิวอาโค้ตที่โต๊ะเพื่อทำการเช็คอิน
+`;
 }
 
 
