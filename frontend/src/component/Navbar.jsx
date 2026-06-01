@@ -81,7 +81,7 @@ const Navbar = () => {
           }}
         >
           <p className="font-semibold text-[14px] text-black md:text-[22px]">
-            {t('clubTitle')}
+            {/* {t('clubTitle')} */}KuanMatch
           </p>
           <img src={Badminton} alt={t('clubTitle')} className="self-center w-6 h-6" />
         </Link>
