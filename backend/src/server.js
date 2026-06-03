@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
 });
 
 app.use(cors({
-    origin: 'https://badmintonclub.vercel.app',
+    origin: process.env.FRONTEND_URL,
     methods: ['POST'],
 }));
 
