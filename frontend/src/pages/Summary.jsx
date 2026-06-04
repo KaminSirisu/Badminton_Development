@@ -9,12 +9,12 @@ import { useLanguage } from '../utils/LanguageProvider.jsx';
 import { toast } from 'react-hot-toast';
 
 
-const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
+const Summary = () => {
   const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { getPlayers, getClubData, clearMatchesAndResetPlayers } = useAuth();
+  const { getPlayers, getClubData, clearMatchesAndResetPlayers, updatedPlayers } = useAuth();
   
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [startPrice, setStartPrice] = useState(0);
@@ -77,13 +77,37 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
     return matchesSearch && matchesSkill;
   });
 
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-    const aChecked = !!checkedPlayers[a.id];
-    const bChecked = !!checkedPlayers[b.id];
-    return aChecked - bChecked; // unchecked (false=0) stays top, checked (true=1) goes down
-  });
+  const handlePaidStatusChange = async (player) => {
+    const nextPaidStatus = !player.paidStatus;
+    const confirmed = window.confirm(
+      nextPaidStatus ? t("Check this player?") : t("Uncheck this player?")
+    );
 
+    if (!confirmed) return;
 
+    setPlayers(prevPlayers =>
+      prevPlayers.map(currentPlayer =>
+        currentPlayer.id === player.id
+          ? { ...currentPlayer, paidStatus: nextPaidStatus }
+          : currentPlayer
+      )
+    );
+
+    const success = await updatedPlayers(player.id, {
+      paidStatus: nextPaidStatus ? 'paid' : 'unpaid',
+    });
+
+    if (!success) {
+      setPlayers(prevPlayers =>
+        prevPlayers.map(currentPlayer =>
+          currentPlayer.id === player.id
+            ? { ...currentPlayer, paidStatus: player.paidStatus }
+            : currentPlayer
+        )
+      );
+      toast.error(t("Something went wrong."));
+    }
+  };
 
   return (
     <div className="bg-neutral-100 w-full min-h-screen overflow-auto pb-16">
@@ -155,7 +179,7 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedPlayers.map((player) => (
+                {filteredPlayers.map((player) => (
                   <tr 
                     key={player.id}
                     className=""
@@ -188,16 +212,8 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
                       <span className="px-2 py-1 rounded-full font-medium text-sm">
                         <input
                           type="checkbox"
-                          checked={!!checkedPlayers[player.id]}
-                          onChange={() => {
-                            const isChecked = !!checkedPlayers[player.id];
-                            const confirmed = window.confirm(
-                              isChecked ? t("Uncheck this player?") : t("Check this player?")
-                            );
-                            if (confirmed) {
-                              onCheckboxToggle(player.id);
-                            }
-                          }}
+                          checked={!!player.paidStatus}
+                          onChange={() => handlePaidStatusChange(player)}
                           className='rounded w-5 h-5 checked:scale-90 transition-transform duration-300 ease-in-out accent-blue-500 transform'
                         />
                       </span>
@@ -241,7 +257,11 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
 
             // Instant UI update
             setPlayers(prev =>
-              prev.map(player => ({ ...player, gamesPlayed: 0 }))
+              prev.map(player => ({ 
+                ...player, 
+                gamesPlayed: 0, 
+                paidStatus: false,
+              }))
             );
             toast.loading(t("Clearing matches..."));
 
@@ -252,7 +272,11 @@ const Summary = ({ checkedPlayers, onCheckboxToggle }) => {
             
             if (result) {
               setPlayers(prev =>
-                prev.map(player => ({ ...player, gamesPlayed: 0 }))
+                prev.map(player => ({ 
+                  ...player, 
+                  gamesPlayed: 0, 
+                  paidStatus: false, 
+                }))
               );
               toast.success(t("Matches cleared."));
               // optionally refresh data or UI
