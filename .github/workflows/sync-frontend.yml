@@ -23,7 +23,7 @@ jobs:
       - name: Checkout deployment repository
         uses: actions/checkout@v4
         with:
-          repository: KaminSirisu/BadmintonClub
+          repository: KaminSirisu/BatmintonClub
           token: ${{ secrets.BADMINTONCLUB_PUSH_TOKEN }}
           path: deployment-repo
 
