@@ -23,20 +23,17 @@ jobs:
       - name: Checkout deployment repository
         uses: actions/checkout@v4
         with:
-          repository: KaminSirisu/BatmintonClub
+          repository: KaminSirisu/BadmintonClub
           token: ${{ secrets.BADMINTONCLUB_PUSH_TOKEN }}
           path: deployment-repo
 
-      - name: Remove old frontend files from deployment repo
+      - name: Remove old frontend folder from deployment repo
         run: |
-          find deployment-repo -mindepth 1 \
-            ! -name ".git" \
-            ! -path "deployment-repo/.git/*" \
-            -exec rm -rf {} +
+          rm -rf deployment-repo/frontend
 
-      - name: Copy frontend files to deployment repo
+      - name: Copy frontend folder to deployment repo
         run: |
-          cp -R frontend/. deployment-repo/
+          cp -R frontend deployment-repo/
 
       - name: Commit and push changes
         working-directory: deployment-repo
