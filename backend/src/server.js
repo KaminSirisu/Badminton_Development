@@ -20,7 +20,7 @@ const allowedOrigins = [
     ...(process.env.FRONTEND_URLS || '').split(','),
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-].map((origin) => origin.trim()).filter(Boolean);
+].filter(Boolean).map((origin) => origin.trim()).filter(Boolean);
 
 const config = {
     channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
